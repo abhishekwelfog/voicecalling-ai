@@ -4612,26 +4612,26 @@
                 bodyEl.innerHTML = '<div style="color:var(--text-muted); font-style:italic; padding:16px; text-align:center;">No conversation transcript recorded for this call.</div>';
             } else {
                 let normalized = transcript.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-                normalized = normalized.replace(/([^\n])\s+((?:priya|customer|user|agent|ai)(?:\s*\([^)]*\))?\s*:)/gi, '$1\n$2');
+                normalized = normalized.replace(/([^\n])\s*(\[?(?:priya|customer|user|agent|ai|प्रिया|ग्राहक)(?:\s*\([^)]*\))?\]?\s*:)/gi, '$1\n$2');
                 const lines = normalized.split('\n').filter(l => l.trim().length > 0);
                 let html = '';
                 lines.forEach((line, lineIdx) => {
                     const trimmed = line.trim();
                     const lower = trimmed.toLowerCase();
-                    const isExplicitPriya = lower.startsWith('priya') || lower.startsWith('ai') || lower.startsWith('agent');
-                    const isExplicitCustomer = lower.startsWith('customer') || lower.startsWith('user');
+                    const isExplicitPriya = lower.startsWith('priya') || lower.startsWith('ai') || lower.startsWith('agent') || lower.startsWith('प्रिया');
+                    const isExplicitCustomer = lower.startsWith('customer') || lower.startsWith('user') || lower.startsWith('ग्राहक');
 
                     let isPriya = isExplicitPriya;
                     let isCustomer = isExplicitCustomer;
                     if (!isPriya && !isCustomer) {
-                        if (lineIdx === 0) {
+                        if (lineIdx % 2 === 0) {
                             isPriya = true;
                         } else {
                             isCustomer = true;
                         }
                     }
 
-                    const cleanText = trimmed.replace(/^(priya(\s*\(welfog\s*ai\))?(\s*\(ai\))?|ai|agent|customer|user):\s*/i, '').trim();
+                    const cleanText = trimmed.replace(/^(\[?(?:priya(\s*\(welfog\s*ai\))?(\s*\(ai\))?|agent|ai|customer|user|प्रिया|ग्राहक)(\s*\([^)]*\))?\]?):\s*/i, '').trim();
 
                     if (isPriya) {
                         html += `

@@ -1779,7 +1779,7 @@
 
             const rawTranscript = log.transcript || 'No conversation transcript recorded for this call.';
             let normalized = rawTranscript.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-            normalized = normalized.replace(/([^\n])\s+((?:priya|customer|user|agent|ai)(?:\s*\([^)]*\))?\s*:)/gi, '$1\n$2');
+            normalized = normalized.replace(/([^\n])\s*(\[?(?:priya|customer|user|agent|ai|प्रिया|ग्राहक)(?:\s*\([^)]*\))?\]?\s*:)/gi, '$1\n$2');
             const lines = normalized.split('\n').filter(l => l.trim().length > 0);
 
             const modalBody = document.getElementById('modalBody');
@@ -1789,13 +1789,13 @@
             lines.forEach((line, lineIdx) => {
                 const trimmed = line.trim();
                 const lower = trimmed.toLowerCase();
-                const isExplicitCustomer = lower.startsWith('customer') || lower.startsWith('user');
-                const isExplicitPriya = lower.startsWith('priya') || lower.startsWith('agent') || lower.startsWith('ai');
+                const isExplicitCustomer = lower.startsWith('customer') || lower.startsWith('user') || lower.startsWith('ग्राहक');
+                const isExplicitPriya = lower.startsWith('priya') || lower.startsWith('agent') || lower.startsWith('ai') || lower.startsWith('प्रिया');
 
                 let isPriya = isExplicitPriya;
                 let isCustomer = isExplicitCustomer;
                 if (!isPriya && !isCustomer) {
-                    if (lineIdx === 0) {
+                    if (lineIdx % 2 === 0) {
                         isPriya = true;
                     } else {
                         isCustomer = true;
@@ -1803,7 +1803,7 @@
                 }
                 
                 const speaker = isPriya ? 'PRIYA (AI VOICE AGENT)' : (log.customer_name || 'CUSTOMER').toUpperCase();
-                const content = trimmed.replace(/^(priya(\s*\(ai\))?(\s*\(welfog\s*ai\))?|agent|ai|customer|user):\s*/i, '').trim();
+                const content = trimmed.replace(/^(\[?(?:priya(\s*\(ai\))?(\s*\(welfog\s*ai\))?|agent|ai|customer|user|प्रिया|ग्राहक)(\s*\([^)]*\))?\]?):\s*/i, '').trim();
 
                 turnsHtml += `
                     <div class="transcript-line ${isPriya ? 'priya' : 'customer'}">

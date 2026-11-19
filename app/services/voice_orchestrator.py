@@ -471,9 +471,8 @@ class VoiceOrchestrator:
                             session.metadata["last_ai_turn_end_time"] = time.time()
                             session.metadata["silence_prompt_count"] = 0
 
-                            if session.metadata.get("call_concluded") or session.metadata.get("farewell_time"):
+                            if session.metadata.get("call_concluded") and not session.metadata.get("farewell_delivered"):
                                 session.metadata["post_farewell_ack"] = True
-                                session.metadata["farewell_delivered"] = False
                                 session.metadata["farewell_time"] = time.time()
 
                             # Verified human voice pickup detection (not dial tone)
@@ -540,9 +539,8 @@ class VoiceOrchestrator:
                                     session.metadata["last_ai_turn_end_time"] = time.time()
                                     session.metadata["silence_prompt_count"] = 0
 
-                                    if session.metadata.get("call_concluded") or session.metadata.get("farewell_time"):
+                                    if session.metadata.get("call_concluded") and not session.metadata.get("farewell_delivered"):
                                         session.metadata["post_farewell_ack"] = True
-                                        session.metadata["farewell_delivered"] = False
                                         session.metadata["farewell_time"] = time.time()
 
                                     if not pickup_event.is_set():
@@ -959,12 +957,12 @@ class VoiceOrchestrator:
                     last_active = max(last_cust, last_ai_audio, last_ai_turn)
 
                     should_hangup = False
-                    # Natural human hangup timing: 2.2s - 2.5s silence gap so customer isn't trapped in dead air
+                    # Natural polite human hangup timing: 1.2s - 1.5s after farewell finishes streaming so customer isn't trapped in dead air
                     if farewell_t:
-                        if (now_t - last_active >= 2.5) and (now_t - farewell_t >= 2.0):
+                        if (now_t - last_ai_audio >= 0.8) and (now_t - farewell_t >= 1.2):
                             should_hangup = True
                     elif concluded_t:
-                        if now_t - last_active >= 3.0:
+                        if (now_t - last_ai_audio >= 0.8) and (now_t - concluded_t >= 2.0):
                             should_hangup = True
 
                     if should_hangup:
@@ -1096,22 +1094,24 @@ class VoiceOrchestrator:
 
             # 2. Post-conclusion handling
             if session.metadata.get("call_concluded"):
-                session.metadata["farewell_delivered"] = False
-                session.metadata["farewell_time"] = time.time()
-                
                 # Check for substantive questions or objections
                 question_or_objection = any(q in clean_lower for q in [
                     "?", "kaun", "kya", "kyun", "kab", "kaisa", "kaha", "kahan", "nahi", "ruk", "suno", "wait", "hold", "what", "why", "when", "how", "no", "app", "address", "pata", "item"
                 ])
                 # Pure polite acknowledgments should NOT revive the call
                 is_pure_ack = any(ack in clean_lower for ack in [
-                    "aapka bhi", "thank you", "dhanyawad", "shukriya", "bye", "okay ji", "theek hai ji", "aapka"
+                    "aapka bhi", "thank you", "dhanyawad", "shukriya", "bye", "okay ji", "theek hai ji", "aapka", "same to you"
                 ])
                 if question_or_objection and not is_pure_ack:
                     session.metadata["call_concluded"] = False
+                    session.metadata["farewell_delivered"] = False
                     session.metadata["farewell_time"] = None
                     session.metadata["concluded_time"] = None
                     logger.info("customer_spoke_substantive_turn_after_farewell_revived_call", call_id=session.call_id, text=text)
+                else:
+                    # Keep conclusion active and allow clean disconnect
+                    session.metadata["farewell_time"] = time.time()
+                    logger.info("customer_spoke_polite_closing_ack_permitting_disconnect", call_id=session.call_id, text=text)
 
     def _check_and_mark_call_concluded(self, session: CallSession) -> bool:
         """

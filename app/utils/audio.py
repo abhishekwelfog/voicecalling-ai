@@ -142,8 +142,8 @@ class AudioAdapter:
         if len(samples) < 4:
             return samples
 
-        # High-pass filter (~280Hz cutoff at 16kHz) to kill rumble and mic breath
-        alpha = 0.90
+        # High-pass filter (~75Hz cutoff at 16kHz) to kill sub-rumble/AC hum while preserving full human voice (85Hz-4000Hz)
+        alpha = 0.971
         float_x = samples.astype(np.float32)
         out_hp = np.empty_like(float_x)
         y = self._prev_hp_y
