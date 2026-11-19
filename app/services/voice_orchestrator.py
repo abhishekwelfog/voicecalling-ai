@@ -1036,7 +1036,7 @@ class VoiceOrchestrator:
                                 types.Content(
                                     role="user",
                                     parts=[types.Part.from_text(
-                                        text=f"[System Notice: Customer is quiet. In maximum 4-5 words, say: 'Hello {name} ji, kya aap sun pa rahe hain?']"
+                                        text=f"[System Notice: Customer has been quiet for a moment. In maximum 4-5 words in the customer's active language, check if {name} can hear you.]"
                                     )]
                                 )
                             ],
@@ -1059,7 +1059,7 @@ class VoiceOrchestrator:
                                 types.Content(
                                     role="user",
                                     parts=[types.Part.from_text(
-                                        text="[System Notice: Customer is still quiet. In maximum 5 words, say: 'Kya aapko meri aawaz aa rahi hai?']"
+                                        text="[System Notice: Customer is still quiet. In maximum 4-5 words in the customer's active language, gently ask if your voice is reaching them.]"
                                     )]
                                 )
                             ],
