@@ -471,6 +471,20 @@ class VoiceOrchestrator:
                             session.metadata["last_ai_turn_end_time"] = time.time()
                             session.metadata["silence_prompt_count"] = 0
                             
+                            # IMMEDIATE BARGE-IN INTERRUPTION:
+                            # If customer speaks while AI was speaking, immediately cut off outgoing AI audio!
+                            if is_ai_speaking:
+                                session.metadata["is_ai_speaking"] = False
+                                session.metadata["interrupted_time"] = time.time()
+                                logger.info("customer_barge_in_interruption_cutting_ai_audio", call_id=session.call_id, rms=rms, peak=peak)
+                                try:
+                                    await websocket.send_text(json.dumps({
+                                        "event": "interrupted",
+                                        "action": "clear_buffer"
+                                    }))
+                                except Exception:
+                                    pass
+
                             if session.metadata.get("call_concluded") or session.metadata.get("farewell_time"):
                                 session.metadata["post_farewell_ack"] = True
                                 session.metadata["farewell_delivered"] = False
@@ -540,6 +554,20 @@ class VoiceOrchestrator:
                                     session.metadata["last_ai_turn_end_time"] = time.time()
                                     session.metadata["silence_prompt_count"] = 0
                                     
+                                    # IMMEDIATE BARGE-IN INTERRUPTION:
+                                    # If customer speaks while AI was speaking, immediately cut off outgoing AI audio!
+                                    if is_ai_speaking:
+                                        session.metadata["is_ai_speaking"] = False
+                                        session.metadata["interrupted_time"] = time.time()
+                                        logger.info("customer_barge_in_interruption_cutting_ai_audio", call_id=session.call_id, rms=rms, peak=peak)
+                                        try:
+                                            await websocket.send_text(json.dumps({
+                                                "event": "interrupted",
+                                                "action": "clear_buffer"
+                                            }))
+                                        except Exception:
+                                            pass
+
                                     if session.metadata.get("call_concluded") or session.metadata.get("farewell_time"):
                                         session.metadata["post_farewell_ack"] = True
                                         session.metadata["farewell_delivered"] = False
@@ -728,12 +756,6 @@ class VoiceOrchestrator:
                                 session.metadata["is_ai_speaking"] = False
                                 session.metadata["opening_greeting_active"] = False
                                 session.metadata["interrupted_time"] = time.time()
-                                if session.metadata.get("call_concluded") or session.metadata.get("farewell_time"):
-                                    session.metadata["call_concluded"] = False
-                                    session.metadata["farewell_time"] = None
-                                    session.metadata["concluded_time"] = None
-                                    session.metadata["farewell_delivered"] = False
-                                    session.metadata["post_farewell_ack"] = False
 
                                 # If interrupted, flush whatever Priya spoke so far
                                 if ai_turn_parts:
@@ -774,8 +796,8 @@ class VoiceOrchestrator:
                                 for part in getattr(model_turn, "parts", []):
                                     inline_data = getattr(part, "inline_data", None)
                                     if inline_data and getattr(inline_data, "data", None):
-                                        # Drop any trailing audio frames arriving within 250ms of interruption
-                                        if time.time() - session.metadata.get("interrupted_time", 0) < 0.25:
+                                        # Drop any trailing audio frames arriving within 500ms of interruption (local barge-in or Gemini interrupt)
+                                        if time.time() - session.metadata.get("interrupted_time", 0) < 0.50:
                                             continue
 
                                         # Anti-loop shield: Drop repeated trailing audio once single farewell has been delivered
@@ -965,12 +987,12 @@ class VoiceOrchestrator:
                     last_active = max(last_cust, last_ai_audio, last_ai_turn)
 
                     should_hangup = False
-                    # Natural human hangup timing: Generous 4.0s - 4.5s silence gap so customer is never cut off
+                    # Natural human hangup timing: 2.2s - 2.5s silence gap so customer isn't trapped in dead air
                     if farewell_t:
-                        if (now_t - last_active >= 4.0) and (now_t - farewell_t >= 3.5):
+                        if (now_t - last_active >= 2.5) and (now_t - farewell_t >= 2.0):
                             should_hangup = True
                     elif concluded_t:
-                        if now_t - last_active >= 4.5:
+                        if now_t - last_active >= 3.0:
                             should_hangup = True
 
                     if should_hangup:
@@ -1014,7 +1036,7 @@ class VoiceOrchestrator:
                                 types.Content(
                                     role="user",
                                     parts=[types.Part.from_text(
-                                        text=f"[System Notice: Customer has been quiet for 8 seconds. In 1 very short, polite sentence in the customer's active language, check if {name} can hear you.]"
+                                        text=f"[System Notice: Customer is quiet. In maximum 4-5 words, say: 'Hello {name} ji, kya aap sun pa rahe hain?']"
                                     )]
                                 )
                             ],
@@ -1037,7 +1059,7 @@ class VoiceOrchestrator:
                                 types.Content(
                                     role="user",
                                     parts=[types.Part.from_text(
-                                        text=f"[System Notice: Customer is still quiet. In 1 short polite sentence in the customer's active language, gently ask if they are occupied and if we should connect at a better time.]"
+                                        text="[System Notice: Customer is still quiet. In maximum 5 words, say: 'Kya aapko meri aawaz aa rahi hai?']"
                                     )]
                                 )
                             ],
@@ -1079,22 +1101,45 @@ class VoiceOrchestrator:
     def _handle_post_turn_signoff(self, session: CallSession, speaker: str, text: str):
         """
         Manages post-turn lifecycle dynamically:
-        If call was concluded via Gemini's end_call tool, any continuing customer speech refreshes
-        the timer and resets farewell_delivered so that Gemini answers the customer dynamically.
-        If the customer asks a question or objects, the concluded state is revived to keep the call alive.
+        If customer asks to hang up ("call kaat do", "phone rakh do"), triggers immediate hangup.
+        If call was concluded, polite acknowledgments ("thank you", "aapka bhi") allow natural hangup,
+        while substantive follow-up questions revive the session so Priya answers back.
         """
-        if session.metadata.get("call_concluded") and speaker == "customer":
-            session.metadata["farewell_delivered"] = False
-            session.metadata["farewell_time"] = time.time()
+        if speaker == "customer":
             clean_lower = (text or "").lower()
-            question_or_objection = any(q in clean_lower for q in [
-                "?", "kaun", "kya", "kyun", "kab", "kaisa", "kaha", "kahan", "nahi", "ruk", "suno", "wait", "hold", "what", "why", "when", "how", "no", "app"
-            ])
-            if question_or_objection:
-                session.metadata["call_concluded"] = False
-                session.metadata["farewell_time"] = None
-                session.metadata["concluded_time"] = None
-                logger.info("customer_spoke_substantive_turn_after_farewell_revived_call", call_id=session.call_id, text=text)
+            
+            # 1. Customer explicitly asks to hang up / cut the call
+            hangup_triggers = [
+                "call kaat", "kaat de", "phone rakh", "phone kaat", "disconnect",
+                "call disconnect", "cut the call", "hang up", "call end", "rakh do phone", "kaat do"
+            ]
+            if any(t in clean_lower for t in hangup_triggers):
+                session.metadata["call_concluded"] = True
+                session.metadata["concluded_reason"] = "customer_requested_hangup"
+                session.metadata["farewell_delivered"] = True
+                session.metadata["farewell_time"] = time.time() - 3.0  # Causes immediate hangup in silence watcher
+                session.metadata["concluded_time"] = time.time() - 3.0
+                logger.info("customer_explicitly_requested_hangup_triggering_immediate_disconnect", call_id=session.call_id, text=text)
+                return
+
+            # 2. Post-conclusion handling
+            if session.metadata.get("call_concluded"):
+                session.metadata["farewell_delivered"] = False
+                session.metadata["farewell_time"] = time.time()
+                
+                # Check for substantive questions or objections
+                question_or_objection = any(q in clean_lower for q in [
+                    "?", "kaun", "kya", "kyun", "kab", "kaisa", "kaha", "kahan", "nahi", "ruk", "suno", "wait", "hold", "what", "why", "when", "how", "no", "app", "address", "pata", "item"
+                ])
+                # Pure polite acknowledgments should NOT revive the call
+                is_pure_ack = any(ack in clean_lower for ack in [
+                    "aapka bhi", "thank you", "dhanyawad", "shukriya", "bye", "okay ji", "theek hai ji", "aapka"
+                ])
+                if question_or_objection and not is_pure_ack:
+                    session.metadata["call_concluded"] = False
+                    session.metadata["farewell_time"] = None
+                    session.metadata["concluded_time"] = None
+                    logger.info("customer_spoke_substantive_turn_after_farewell_revived_call", call_id=session.call_id, text=text)
 
     def _check_and_mark_call_concluded(self, session: CallSession) -> bool:
         """
@@ -1154,6 +1199,16 @@ class VoiceOrchestrator:
                 return {
                     "status": "success",
                     "message": "Voicemail / Answering machine detected. Call disconnected and retry scheduled."
+                }
+            elif reason == "customer_requested_hangup":
+                session.status = CallState.COMPLETED
+                session.metadata["farewell_delivered"] = True
+                session.metadata["farewell_time"] = time.time() - 3.0
+                session.metadata["concluded_time"] = time.time() - 3.0
+                logger.info("gemini_tool_end_call_customer_requested_hangup", call_id=session.call_id)
+                return {
+                    "status": "success",
+                    "message": "Customer requested immediate hangup. Disconnecting."
                 }
 
             logger.info("gemini_tool_end_call_invoked", call_id=session.call_id, reason=reason)

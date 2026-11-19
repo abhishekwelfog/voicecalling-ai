@@ -213,13 +213,13 @@ class AudioAdapter:
         # When AI is actively speaking, speakerphone acoustics bleed AI voice back into phone mic.
         # We raise threshold adaptively relative to AI volume and require multi-frame vocal persistence.
         if is_ai_speaking:
-            # Dynamic AEC floor: scales with AI output amplitude
-            dynamic_peak_threshold = max(420, min(1500, int(recent_ai_peak * 0.38)))
-            dynamic_rms_threshold = max(140.0, min(450.0, dynamic_peak_threshold * 0.32))
+            # Dynamic AEC floor: scales adaptively with AI output amplitude while preserving responsive barge-in
+            dynamic_peak_threshold = max(240, min(700, int(recent_ai_peak * 0.22)))
+            dynamic_rms_threshold = max(35.0, min(140.0, dynamic_peak_threshold * 0.22))
             is_active = (peak >= dynamic_peak_threshold and rms >= dynamic_rms_threshold)
-            required_frames = 3  # ~60-90ms vocal persistence to filter speaker reflection
+            required_frames = 2  # ~40ms vocal persistence to filter speaker reflection while ensuring fast barge-in
         else:
-            is_active = (peak >= 120 and rms >= 16.0)
+            is_active = (peak >= 110 and rms >= 14.0)
             required_frames = 1
 
         if is_active:

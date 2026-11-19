@@ -91,6 +91,18 @@ async def test_natural_hangup_signoff_and_safety():
     assert session.metadata.get("call_concluded") is False
     assert session.metadata.get("farewell_time") is None
 
+    # Case 5: Customer says 'Aapka bhi' polite acknowledgment -> Stays concluded
+    session.metadata["call_concluded"] = True
+    session.metadata["farewell_time"] = 1000.0
+    orch._handle_post_turn_signoff(session, speaker="customer", text="Aapka bhi.")
+    assert session.metadata.get("call_concluded") is True
+
+    # Case 6: Customer explicitly asks to hang up -> Concludes immediately
+    session.metadata["call_concluded"] = False
+    orch._handle_post_turn_signoff(session, speaker="customer", text="Call kaat de na ab")
+    assert session.metadata.get("call_concluded") is True
+    assert session.metadata.get("concluded_reason") == "customer_requested_hangup"
+
 @pytest.mark.asyncio
 async def test_pickup_greeting_does_not_conclude_prematurely():
     """Verify telephone pickup greetings without Gemini end_call invocation never conclude."""
