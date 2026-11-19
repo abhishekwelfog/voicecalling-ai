@@ -11,7 +11,9 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.services.db_service import get_db_service
 
-SECRET_KEY = "welfog_voice_calling_secret_key_2026_super_secure"
+import os
+
+SECRET_KEY = os.getenv("SECRET_KEY") or os.getenv("TELECMI_APP_SECRET") or "welfog_voice_calling_secret_key_2026_super_secure"
 SESSION_COOKIE_NAME = "welfog_session"
 SESSION_EXPIRY_SECONDS = 86400 * 7  # 7 days
 

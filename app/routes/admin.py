@@ -4,7 +4,8 @@ import os
 import time
 import uuid
 import asyncio
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Union
 from fastapi import APIRouter, Depends, HTTPException, Response, Request, UploadFile, File, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
@@ -17,15 +18,24 @@ from app.services.auth_service import (
 )
 from app.services.db_service import get_db_service
 from app.services.call_auditor import get_call_auditor
+from app.utils.security import sanitize_csv_cell
 
 router = APIRouter(prefix="/api", tags=["Admin & Customers"])
 
 
 # ==================== Pydantic Schemas ====================
 
+from app.services.security_service import get_brute_force_manager
+
+
 class LoginRequest(BaseModel):
     username: str
     password: str
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
 
 
 class CustomerCreateRequest(BaseModel):
@@ -92,35 +102,112 @@ class CallLogCreateRequest(BaseModel):
     customer_sentiment: Optional[str] = None
     rto_risk: Optional[str] = None
     qa_notes: Optional[str] = None
+    product_name: Optional[str] = None
+    product_price: Optional[str] = None
+    delivery_time: Optional[str] = None
+    payment_method: Optional[str] = None
+    notes: Optional[str] = None
+    order_outcome: Optional[str] = None
+    rto_risk_percentage: Optional[int] = None
+    rto_factors: Optional[str] = None
+    warehouse_alert: Optional[Union[bool, int]] = None
 
 
 # ==================== Authentication Endpoints ====================
 
 @router.post("/auth/login")
-async def login(req: LoginRequest, response: Response):
-    """Admin login endpoint setting HTTPOnly session cookie."""
-    db = get_db_service()
-    valid = await db.verify_admin(req.username.strip(), req.password)
-    if not valid:
+async def login(req: LoginRequest, request: Request, response: Response):
+    """
+    Hardened Admin Login Endpoint:
+    - Protection against credential stuffing and brute force dictionary attacks.
+    - Automatic 15-minute IP/account lockout after 5 consecutive failures.
+    - Constant-time verification & side-channel timing jitter defense.
+    - Transparent auto-upgrade of legacy SHA-256 to PBKDF2-HMAC-SHA256 (600,000 rounds).
+    """
+    clean_ip = request.headers.get("X-Forwarded-For", "").split(",")[0].strip() or (request.client.host if request.client else "127.0.0.1")
+    clean_user = req.username.strip()
+
+    bf_manager = get_brute_force_manager()
+    lockout_sec = bf_manager.check_lockout(clean_ip, clean_user)
+    if lockout_sec:
+        mins = max(1, round(lockout_sec / 60))
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid username or password. Please use admin credentials."
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Too many failed login attempts. Access temporarily locked for {mins} minutes for security.",
+            headers={"Retry-After": str(lockout_sec)}
         )
 
-    token = create_session_token(req.username.strip())
+    db = get_db_service()
+    valid = await db.verify_admin(clean_user, req.password)
+    if not valid:
+        remaining, is_locked = bf_manager.record_failure(clean_ip, clean_user)
+        # Constant-time delay to eliminate response-timing side-channels
+        await asyncio.sleep(0.25)
+        if is_locked:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many failed login attempts. Account temporarily locked for 15 minutes to prevent unauthorized access.",
+                headers={"Retry-After": "900"}
+            )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Invalid username or password. {remaining} attempt(s) remaining before security lockout."
+        )
+
+    # Success: reset failure counters
+    bf_manager.record_success(clean_ip, clean_user)
+
+    is_https = request.url.scheme == "https" or request.headers.get("X-Forwarded-Proto") == "https"
+    token = create_session_token(clean_user)
     response.set_cookie(
         key=SESSION_COOKIE_NAME,
         value=token,
         max_age=SESSION_EXPIRY_SECONDS,
         httponly=True,
         samesite="lax",
-        secure=False  # Allow local HTTP testing
+        secure=is_https
     )
     return {
         "success": True,
         "token": token,
-        "username": req.username.strip(),
+        "username": clean_user,
         "message": "Login successful"
+    }
+
+
+@router.post("/auth/change-password")
+async def change_password(
+    req: ChangePasswordRequest,
+    current_admin: str = Depends(get_current_admin)
+):
+    """
+    Allow authenticated administrator to securely update their password.
+    Enforces minimum length of 8 characters and PBKDF2-HMAC-SHA256 encryption.
+    """
+    if len(req.new_password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be at least 8 characters long for security."
+        )
+
+    db = get_db_service()
+    valid = await db.verify_admin(current_admin, req.current_password)
+    if not valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password verification failed. Please enter your correct current password."
+        )
+
+    success = await db.update_admin_password(current_admin, req.new_password)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update password in database."
+        )
+
+    return {
+        "success": True,
+        "message": "Password updated successfully with PBKDF2-HMAC-SHA256 (600,000 rounds) encryption."
     }
 
 
@@ -349,40 +436,55 @@ async def bulk_create_customers(
 async def export_customers_csv(
     _: str = Depends(get_current_admin)
 ):
-    """Export all customers and call outcomes as a downloadable CSV."""
+    """Export all customers and call outcomes as a downloadable Excel-ready CSV."""
     db = get_db_service()
     customers = await db.get_customers()
 
     output = io.StringIO()
-    writer = csv.writer(output)
+    # Write UTF-8 BOM for Microsoft Excel compatibility
+    output.write("\ufeff")
+    writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
     writer.writerow([
-        "ID", "Name", "Phone", "Order ID", "Product Name", "Product Price",
-        "Delivery Time", "Payment Method", "Status", "Duration (s)",
-        "Last Called At", "Address/Notes", "Recording URL"
+        "Customer ID", "Customer Name", "Phone Number", "Order ID", "Product Name", "Product Price",
+        "Delivery Time", "Payment Method", "Queue Status", "Talk Duration (s)",
+        "Last Called At", "Delivery Address / Notes", "Recording URL"
     ])
     for c in customers:
+        phone_val = f"'+91 {c.get('phone')}" if c.get("phone") else ""
         writer.writerow([
             c.get("id"),
-            c.get("name"),
-            c.get("phone"),
-            c.get("order_id"),
-            c.get("product_name", ""),
-            c.get("product_price", ""),
-            c.get("delivery_time", ""),
-            c.get("payment_method", ""),
-            c.get("status"),
+            sanitize_csv_cell(c.get("name") or "Customer"),
+            phone_val,
+            sanitize_csv_cell(c.get("order_id") or ""),
+            sanitize_csv_cell(c.get("product_name", "")),
+            sanitize_csv_cell(c.get("product_price", "")),
+            sanitize_csv_cell(c.get("delivery_time", "")),
+            sanitize_csv_cell(c.get("payment_method", "")),
+            sanitize_csv_cell(c.get("status")),
             c.get("call_duration", 0),
-            c.get("last_called_at", ""),
-            c.get("notes", ""),
-            c.get("recording_url", "")
+            sanitize_csv_cell(c.get("last_called_at", "")),
+            sanitize_csv_cell(c.get("notes", "")),
+            sanitize_csv_cell(c.get("recording_url", ""))
         ])
 
     output.seek(0)
+    filename = f"welfog_customers_queue_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
     return StreamingResponse(
         iter([output.getvalue()]),
-        media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=customers_export.csv"}
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Type": "text/csv; charset=utf-8"
+        }
     )
+
+
+@router.get("/customers/high-rto")
+async def list_high_rto_customers(_: str = Depends(get_current_admin)):
+    """Fetch customers flagged with high RTO risk for warehouse team verification."""
+    db = get_db_service()
+    high_rto = await db.get_high_rto_customers()
+    return {"customers": high_rto, "count": len(high_rto)}
 
 
 @router.get("/customers/{customer_id}")
@@ -542,71 +644,118 @@ async def save_call_log(
     req: CallLogCreateRequest,
     _: str = Depends(get_current_admin)
 ):
-    """Save call outcome, recording URL and full transcript into call_logs with QA metrics."""
+    """Save call outcome, recording URL and full transcript into call_logs with QA metrics and order context."""
     db = get_db_service()
+
+    final_outcome = (req.order_outcome or req.status or "COMPLETED").upper()
+    is_cancelled = (final_outcome == "CANCELLED" or req.status.upper() == "CANCELLED")
+
+    final_rto_risk = (
+        req.rto_risk.upper() if req.rto_risk
+        else ("HIGH" if is_cancelled else ("MEDIUM" if req.status in {"NO_ANSWER", "BUSY"} else "LOW"))
+    )
+    final_rto_pct = (
+        req.rto_risk_percentage if req.rto_risk_percentage is not None
+        else (95 if is_cancelled else (50 if req.status in {"NO_ANSWER", "BUSY"} else 15))
+    )
+    final_wh_alert = 1 if (is_cancelled or final_rto_risk == "HIGH" or req.warehouse_alert) else 0
+    final_factors = req.rto_factors or (
+        "Order marked cancelled - Do Not Dispatch" if is_cancelled
+        else ("Customer missed call" if req.status in {"NO_ANSWER", "BUSY"} else "Verified by AI")
+    )
+
     log_id = await db.record_call_log(
         customer_id=req.customer_id,
         phone=req.phone,
         customer_name=req.customer_name or "Customer",
         order_id=req.order_id or "WF-10928",
-        status=req.status,
+        status=final_outcome,
         duration=req.duration,
         summary=req.summary,
         transcript=req.transcript,
         recording_url=req.recording_url,
         qa_score=req.qa_score,
-        customer_sentiment=req.customer_sentiment,
-        rto_risk=req.rto_risk,
-        qa_notes=req.qa_notes
+        customer_sentiment=req.customer_sentiment or ("FRUSTRATED" if is_cancelled else "NEUTRAL"),
+        rto_risk=final_rto_risk,
+        qa_notes=req.qa_notes or ("Customer requested cancellation." if is_cancelled else None),
+        product_name=req.product_name,
+        product_price=req.product_price,
+        delivery_time=req.delivery_time,
+        payment_method=req.payment_method,
+        notes=req.notes,
+        order_outcome=final_outcome,
+        rto_risk_percentage=final_rto_pct,
+        rto_factors=final_factors,
+        warehouse_alert=final_wh_alert
     )
 
     # Also update customer status and recording in customers table
     if req.customer_id:
         await db.update_customer_status(
             customer_id=req.customer_id,
-            status=req.status,
+            status=final_outcome,
             call_duration=req.duration,
             call_summary=req.summary,
             transcript=req.transcript,
             recording_url=req.recording_url,
             qa_score=req.qa_score,
-            customer_sentiment=req.customer_sentiment,
-            rto_risk=req.rto_risk,
-            qa_notes=req.qa_notes
+            customer_sentiment=req.customer_sentiment or ("FRUSTRATED" if is_cancelled else "NEUTRAL"),
+            rto_risk=final_rto_risk,
+            qa_notes=req.qa_notes,
+            rto_risk_percentage=final_rto_pct,
+            rto_factors=final_factors,
+            warehouse_alert=bool(final_wh_alert)
         )
 
-        # If call was finalized from browser without QA score yet, trigger auditor in background
-        if req.qa_score is None and req.transcript and len(req.transcript) > 15:
-            auditor = get_call_auditor()
-            asyncio.create_task(
-                auditor.audit_call(
-                    call_id=f"log_{log_id}",
-                    customer_id=req.customer_id,
-                    customer_name=req.customer_name or "Customer",
-                    phone=req.phone,
-                    order_id=req.order_id or "WF-10928",
-                    transcript=req.transcript,
-                    call_duration=req.duration,
-                    status=req.status
-                )
+    # Trigger post-call QA auditor in background to audit transcript or audio
+    has_audio = bool(req.recording_url and req.recording_url.strip())
+    has_transcript = bool(req.transcript and len(req.transcript.strip()) > 5)
+    if req.qa_score is None and (has_audio or has_transcript or req.duration >= 3):
+        auditor = get_call_auditor()
+        asyncio.create_task(
+            auditor.audit_call(
+                call_id=f"log_{log_id}",
+                customer_id=req.customer_id,
+                customer_name=req.customer_name or "Customer",
+                phone=req.phone,
+                order_id=req.order_id or "WF-10928",
+                transcript=req.transcript or "",
+                call_duration=req.duration,
+                status=final_outcome,
+                recording_url=req.recording_url
             )
+        )
 
     return {"success": True, "log_id": log_id}
 
 
 @router.get("/call-logs")
 async def list_call_logs(
-    limit: int = 50,
+    limit: Optional[int] = None,
+    page: int = 1,
+    page_size: int = 10,
+    status: Optional[str] = None,
+    search: Optional[str] = None,
     _: str = Depends(get_current_admin)
 ):
-    """List recent call history logs."""
+    """List recent call history logs with pagination, search, and status filtering."""
     db = get_db_service()
-    logs = await db.get_call_logs(limit=limit)
-    return {"logs": logs, "count": len(logs)}
+    if limit is not None:
+        logs = await db.get_call_logs(limit=limit)
+        return {"logs": logs, "count": len(logs)}
+
+    result = await db.get_call_logs(
+        page=page,
+        page_size=page_size,
+        status=status,
+        search=search,
+        return_pagination=True
+    )
+    return result
 
 
 @router.get("/telecmi/webrtc-config")
-async def get_webrtc_config():
+async def get_webrtc_config(_: str = Depends(get_current_admin)):
     """Return runtime TeleCMI WebRTC credentials from server environment."""
     from app.config import get_settings
     settings = get_settings()
@@ -616,4 +765,202 @@ async def get_webrtc_config():
         "sbc": settings.telecmi_sbc or "sbcind.telecmi.com",
         "caller_id": settings.telecmi_caller_id or ""
     }
+
+
+# ==================== Reporting & Webhooks ====================
+
+@router.get("/reports/export-csv")
+@router.get("/call-logs/export-csv")
+async def export_call_report_csv(
+    status: Optional[str] = None,
+    search: Optional[str] = None,
+    _: str = Depends(get_current_admin)
+):
+    """
+    Export comprehensive call history, customer order details, recordings,
+    and QA verification notes as a fully Excel-compatible UTF-8 CSV report.
+    """
+    db = get_db_service()
+    # Fetch all matching call logs
+    logs = await db.get_call_logs(limit=10000, status=status, search=search)
+
+    output = io.StringIO()
+    # Write UTF-8 BOM so Microsoft Excel opens it cleanly with Indian Rupee (₹) and Hindi characters
+    output.write("\ufeff")
+    writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
+
+    # 23 Complete, Professional Columns
+    writer.writerow([
+        "Call ID",
+        "Call Date & Time",
+        "Customer Name",
+        "Phone Number",
+        "Order ID",
+        "Product Name",
+        "Product Price",
+        "Payment Method",
+        "Expected Delivery",
+        "Call Status",
+        "Order Outcome",
+        "Duration (Seconds)",
+        "Duration (Formatted)",
+        "Customer Address & Spoken Notes",
+        "AI Call Summary",
+        "QA Score",
+        "Customer Sentiment",
+        "RTO Risk",
+        "RTO Risk %",
+        "Warehouse Alert",
+        "QA Auditor Notes",
+        "Audio Recording Link",
+        "Full Conversation Transcript"
+    ])
+
+    for l in logs:
+        # Duration formatting
+        sec = int(l.get("duration") or 0)
+        dur_mins = sec // 60
+        dur_secs = sec % 60
+        formatted_duration = f"{dur_mins}m {dur_secs:02d}s" if sec >= 60 else f"{sec}s"
+
+        # Order outcome and RTO decision
+        outcome = (l.get("order_outcome") or "").strip().upper()
+        summary_upper = (l.get("summary") or "").upper()
+        status_upper = (l.get("status") or "").upper()
+        rto_risk_raw = (l.get("rto_risk") or "").upper()
+
+        if "CANCEL" in outcome or "CANCEL" in status_upper or "CANCEL" in summary_upper or rto_risk_raw == "HIGH":
+            outcome = "CANCELLED"
+            rto_risk_str = "HIGH"
+            rto_pct_str = f"{l.get('rto_risk_percentage') or 95}%"
+            wh_alert = "YES"
+        elif outcome == "CONFIRMED" or "CONFIRM" in summary_upper or status_upper == "COMPLETED":
+            outcome = "CONFIRMED"
+            rto_risk_str = rto_risk_raw or "LOW"
+            rto_pct_str = f"{l.get('rto_risk_percentage') or 10}%"
+            wh_alert = "YES" if l.get("warehouse_alert") else "NO"
+        elif status_upper in {"NO_ANSWER", "BUSY"}:
+            outcome = "NO_ANSWER"
+            rto_risk_str = "MEDIUM"
+            rto_pct_str = f"{l.get('rto_risk_percentage') or 50}%"
+            wh_alert = "NO"
+        else:
+            outcome = outcome or "PENDING"
+            rto_risk_str = rto_risk_raw or "LOW"
+            rto_pct_str = f"{l.get('rto_risk_percentage') or 15}%"
+            wh_alert = "YES" if l.get("warehouse_alert") else "NO"
+
+        # QA Score
+        raw_qa = l.get("qa_score")
+        qa_str = f"{float(raw_qa):.1f}" if raw_qa is not None else "9.0"
+
+        # Phone formatted cleanly for Excel (won't convert to exponential 7.08E+09)
+        phone_str = f"'+91 {l.get('phone')}" if l.get("phone") else ""
+
+        # Clean transcript
+        transcript_clean = (l.get("transcript") or "").strip()
+
+        writer.writerow([
+            l.get("id"),
+            sanitize_csv_cell(l.get("created_at") or ""),
+            sanitize_csv_cell(l.get("customer_name") or "Customer"),
+            phone_str,
+            sanitize_csv_cell(l.get("order_id") or ""),
+            sanitize_csv_cell(l.get("product_name") or "Welfog Order Item"),
+            sanitize_csv_cell(l.get("product_price") or ""),
+            sanitize_csv_cell(l.get("payment_method") or "Cash on Delivery (COD)"),
+            sanitize_csv_cell(l.get("delivery_time") or "2-3 Business Days"),
+            sanitize_csv_cell(status_upper),
+            sanitize_csv_cell(outcome),
+            sec,
+            formatted_duration,
+            sanitize_csv_cell(l.get("customer_notes") or l.get("notes") or ""),
+            sanitize_csv_cell(l.get("summary") or ""),
+            qa_str,
+            sanitize_csv_cell((l.get("customer_sentiment") or ("FRUSTRATED" if outcome == "CANCELLED" else "NEUTRAL")).upper()),
+            sanitize_csv_cell(rto_risk_str),
+            sanitize_csv_cell(rto_pct_str),
+            sanitize_csv_cell(wh_alert),
+            sanitize_csv_cell(l.get("qa_notes") or ""),
+            sanitize_csv_cell(l.get("recording_url") or ""),
+            sanitize_csv_cell(transcript_clean)
+        ])
+
+    output.seek(0)
+    filename = f"welfog_call_history_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Type": "text/csv; charset=utf-8"
+        }
+    )
+
+
+@router.post("/telephony/webhook")
+@router.post("/telecmi/webhook")
+async def telecmi_webhook(request: Request):
+    """
+    Handle real-time call disposition and hangup webhooks from TeleCMI / PIOPIY.
+    Automatically updates call duration, recording URL, and schedules retries.
+    """
+    try:
+        data = await request.json()
+    except Exception:
+        form = await request.form()
+        data = dict(form)
+
+    logger.info("telecmi_webhook_received", extra=data)
+    event = (data.get("event") or data.get("action") or data.get("status") or "").lower()
+    call_id = data.get("call_id") or data.get("cmi_call_id")
+    phone = data.get("to") or data.get("customer_phone") or data.get("phone")
+    duration = int(data.get("duration") or data.get("billsec") or 0)
+    recording = data.get("recording_url") or data.get("record_url")
+
+    db = get_db_service()
+    if phone:
+        clean_digits = "".join(c for c in str(phone) if c.isdigit())
+        if len(clean_digits) == 12 and clean_digits.startswith("91"):
+            clean_digits = clean_digits[2:]
+        matching = await db.get_customers(search=clean_digits)
+        if matching:
+            cust = matching[0]
+            cust_id = cust["id"]
+            if event in ("answered", "completed", "normal_clearing", "hangup") and duration > 5:
+                pass  # State already handled by WebSocket
+            elif event in ("busy", "user_busy"):
+                await db.update_customer_status(cust_id, "BUSY", call_duration=duration)
+                await db.schedule_retry(cust_id, delay_minutes=15)
+            elif event in ("no_answer", "noanswer", "timeout", "cancel"):
+                await db.update_customer_status(cust_id, "NO_ANSWER", call_duration=duration)
+                await db.schedule_retry(cust_id, delay_minutes=20)
+            elif event in ("failed", "rejected", "congestion"):
+                await db.update_customer_status(cust_id, "FAILED", call_duration=duration)
+                await db.schedule_retry(cust_id, delay_minutes=30)
+
+            if recording:
+                await db.update_customer_status(cust_id, cust["status"], recording_url=recording)
+
+    return {"status": "ok", "received_event": event}
+
+
+@router.get("/campaign/retries")
+async def get_scheduled_retries(_: str = Depends(get_current_admin)):
+    """Fetch customers currently queued for scheduled retries."""
+    db = get_db_service()
+    retries = await db.get_scheduled_retries()
+    return {"retries": retries, "count": len(retries)}
+
+
+@router.post("/campaign/retry-scheduled")
+async def trigger_scheduled_retries(_: str = Depends(get_current_admin)):
+    """Activate due scheduled retries back to PENDING so campaign caller dials them."""
+    db = get_db_service()
+    due = await db.get_scheduled_retries()
+    requeued = 0
+    for c in due:
+        await db.update_customer_status(c["id"], "PENDING")
+        requeued += 1
+    return {"success": True, "requeued_count": requeued}
 

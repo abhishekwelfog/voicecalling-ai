@@ -7,7 +7,7 @@ from typing import Optional
 # Precompiled regex patterns for performance
 # 1. OTP / Verification codes (4 to 6 consecutive digits with context keywords or standalone formatted)
 _OTP_CONTEXT_PATTERN = re.compile(
-    r"(?i)\b(?:otp|code|pin|verification\s*code|one\s*time\s*password|passcode)[\s:=–-]+([0-9]{4,6})\b"
+    r"(?i)\b(?:otp|code|pin|verification\s*code|one\s*time\s*password|passcode)(?:\s+(?:is|hai|number|code))?[\s:=–-]+([0-9]{4,6})\b"
 )
 _STANDALONE_OTP_PATTERN = re.compile(
     r"(?i)\b(?:otp\s*hai|code\s*hai|likho)\s*[:=–-]?\s*([0-9]{4,6})\b"
@@ -20,7 +20,7 @@ _CARD_PATTERN = re.compile(
 
 # 3. CVV / CVC (3 or 4 digits near security code keywords)
 _CVV_PATTERN = re.compile(
-    r"(?i)\b(?:cvv|cvc|security\s*code)[\s:=–-]+([0-9]{3,4})\b"
+    r"(?i)\b(?:cvv|cvc|security\s*code)(?:\s+(?:is|hai|number|code))?[\s:=–-]+([0-9]{3,4})\b"
 )
 
 # 4. Aadhaar Numbers (12 digits, often formatted as 4-4-4)
@@ -30,7 +30,7 @@ _AADHAAR_PATTERN = re.compile(
 
 # 5. Sensitive passwords / PIN hints
 _PASSWORD_PATTERN = re.compile(
-    r"(?i)\b(?:password|mpin|atm\s*pin)[\s:=–-]+(\S+)\b"
+    r"(?i)\b(?:password|mpin|atm\s*pin)(?:\s+(?:is|hai|number))?[\s:=–-]+(\S+)\b"
 )
 
 

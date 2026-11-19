@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 from app.models.call_session import CallSession
 from app.models.call_outcome import CallOutcome
 from app.services.voice_orchestrator import VoiceOrchestrator
+from app.services.auth_service import get_current_admin
 from app.utils.security import is_valid_phone_number
 
 router = APIRouter(prefix="/api/calls", tags=["Calls"])
@@ -29,10 +30,12 @@ class InitiateCallRequest(BaseModel):
 @router.post("/outbound")
 async def initiate_call(
     req: InitiateCallRequest,
-    orch: VoiceOrchestrator = Depends(get_orchestrator)
+    orch: VoiceOrchestrator = Depends(get_orchestrator),
+    admin: str = Depends(get_current_admin)
 ) -> Dict[str, Any]:
     """
     Initiates an outbound AI call to a Welfog customer regarding their order.
+    Requires authenticated admin session.
     """
     if not is_valid_phone_number(req.customer_phone):
         raise HTTPException(
@@ -68,7 +71,8 @@ async def initiate_call(
 @router.get("/{call_id}")
 async def get_call_session(
     call_id: str,
-    orch: VoiceOrchestrator = Depends(get_orchestrator)
+    orch: VoiceOrchestrator = Depends(get_orchestrator),
+    admin: str = Depends(get_current_admin)
 ) -> CallSession:
     """Retrieve current state and tool execution logs for a call."""
     session = orch.get_session(call_id)
@@ -80,7 +84,8 @@ async def get_call_session(
 @router.get("/{call_id}/outcome")
 async def get_call_outcome(
     call_id: str,
-    orch: VoiceOrchestrator = Depends(get_orchestrator)
+    orch: VoiceOrchestrator = Depends(get_orchestrator),
+    admin: str = Depends(get_current_admin)
 ) -> CallOutcome:
     """Retrieve final structured outcome of the call."""
     outcome = orch.outcomes.get(call_id)
@@ -90,3 +95,16 @@ async def get_call_outcome(
             raise HTTPException(status_code=404, detail="Call outcome not found")
         return orch._finalize_outcome(session, "in-progress outcome inquiry", True)
     return outcome
+
+
+@router.post("/{call_id}/takeover")
+async def takeover_call(
+    call_id: str,
+    orch: VoiceOrchestrator = Depends(get_orchestrator),
+    admin: str = Depends(get_current_admin)
+) -> Dict[str, Any]:
+    """Allows authenticated supervisor to take over an active AI call."""
+    success = await orch.takeover_call(call_id, admin_name=admin)
+    if not success:
+        raise HTTPException(status_code=404, detail="Active call session not found to take over")
+    return {"success": True, "call_id": call_id, "taken_over_by": admin}

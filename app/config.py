@@ -38,11 +38,11 @@ class Settings(BaseSettings):
     qdrant_api_key: Optional[str] = Field(default=None, alias="QDRANT_API_KEY")
     qdrant_collection: str = Field(default="company_knowledge", alias="QDRANT_COLLECTION")
 
-    # 5. Database Configuration (MySQL / XAMPP)
+    # 5. Database Configuration (PostgreSQL)
     db_host: str = Field(default="localhost", alias="DB_HOST")
-    db_port: int = Field(default=3306, alias="DB_PORT")
-    db_user: str = Field(default="root", alias="DB_USER")
-    db_password: str = Field(default="", alias="DB_PASSWORD")
+    db_port: int = Field(default=5432, alias="DB_PORT")
+    db_user: str = Field(default="postgres", alias="DB_USER")
+    db_password: str = Field(default="welfog", alias="DB_PASSWORD")
     db_name: str = Field(default="welfog_ai", alias="DB_NAME")
 
     # 6. Server & Streaming URLs

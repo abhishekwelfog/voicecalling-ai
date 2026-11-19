@@ -46,10 +46,20 @@ def create_app() -> FastAPI:
         lifespan=lifespan
     )
 
-    # CORS configuration
+    # DDoS, Rate Limiting & Enterprise Security Middlewares
+    from app.middleware.security import (
+        SecurityHeadersMiddleware,
+        RateLimitMiddleware,
+        RequestSizeLimitMiddleware
+    )
+    app.add_middleware(SecurityHeadersMiddleware)
+    app.add_middleware(RateLimitMiddleware)
+    app.add_middleware(RequestSizeLimitMiddleware)
+
+    # CORS configuration with credentials support
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1|0\.0\.0\.0|.*\.trycloudflare\.com|.*\.welfog\.com)(:\d+)?$",
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -102,6 +112,14 @@ def create_app() -> FastAPI:
             if not token or not verify_session_token(token):
                 return RedirectResponse(url="/login", status_code=303)
             return FileResponse(os.path.join(static_dir, "index.html"))
+
+        @app.get("/history", include_in_schema=False)
+        @app.get("/call-history", include_in_schema=False)
+        async def serve_history(request: Request):
+            token = request.cookies.get(SESSION_COOKIE_NAME)
+            if not token or not verify_session_token(token):
+                return RedirectResponse(url="/login", status_code=303)
+            return FileResponse(os.path.join(static_dir, "history.html"))
 
     return app
 

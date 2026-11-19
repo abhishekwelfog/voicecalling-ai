@@ -26,6 +26,9 @@ class AudioAdapter:
         self.gemini_output_sample_rate = gemini_output_sample_rate
         self._hangover_frames: int = 0
         self._consecutive_speech_frames: int = 0
+        self._ambient_noise_floor: float = 20.0
+        self._prev_hp_x: float = 0.0
+        self._prev_hp_y: float = 0.0
 
     @staticmethod
     def mulaw_to_pcm16(mulaw_bytes: bytes) -> bytes:
@@ -130,6 +133,41 @@ class AudioAdapter:
                 return True
         return False
 
+    def filter_ambient_noise(self, samples: np.ndarray, sample_rate: int = 16000) -> np.ndarray:
+        """
+        Suppresses low-frequency rumble (engine/AC/traffic) and ambient telephone hiss.
+        Tracks background noise floor and applies dynamic downward gating so background horns/traffic
+        don't leak during customer silence.
+        """
+        if len(samples) < 4:
+            return samples
+
+        # High-pass filter (~280Hz cutoff at 16kHz) to kill rumble and mic breath
+        alpha = 0.90
+        float_x = samples.astype(np.float32)
+        out_hp = np.empty_like(float_x)
+        y = self._prev_hp_y
+        x_prev = self._prev_hp_x
+        for i in range(len(float_x)):
+            x_curr = float_x[i]
+            y = alpha * (y + x_curr - x_prev)
+            x_prev = x_curr
+            out_hp[i] = y
+        self._prev_hp_y = y
+        self._prev_hp_x = x_prev
+
+        # Track ambient noise floor during quieter periods
+        frame_rms = float(np.sqrt(np.mean(out_hp ** 2)))
+        if frame_rms < 120.0:
+            self._ambient_noise_floor = 0.96 * self._ambient_noise_floor + 0.04 * frame_rms
+
+        # Downward noise attenuation for steady low-level ambient sounds
+        gate_threshold = max(32.0, self._ambient_noise_floor * 1.30)
+        if frame_rms < gate_threshold:
+            out_hp = out_hp * 0.50
+
+        return np.clip(out_hp, -32768, 32767).astype(np.int16)
+
     def process_incoming_pcm(
         self,
         pcm16: bytes,
@@ -142,6 +180,7 @@ class AudioAdapter:
         - Filters out telephone ringback / dial tones before pickup so bot doesn't speak during ringing.
         - Suppresses speakerphone acoustic echo during AI speech via adaptive thresholding.
         - Preserves soft human affirmations ('haan', 'ji', 'theek hai') with telephony AGC.
+        - Suppresses traffic/horn ambient noise floor via spectral bandpass gating.
         - Returns (clean_pcm16_bytes, is_speech, rms, peak).
         """
         if not pcm16:
@@ -153,21 +192,22 @@ class AudioAdapter:
 
         raw_samples = np.frombuffer(pcm16, dtype=np.int16)
         cleaned_samples = self.remove_dc_offset(raw_samples)
-        float_s = cleaned_samples.astype(np.float32)
-        rms, peak = self.calculate_energy(cleaned_samples)
+        filtered_samples = self.filter_ambient_noise(cleaned_samples, self.gemini_input_sample_rate)
+        float_s = filtered_samples.astype(np.float32)
+        rms, peak = self.calculate_energy(filtered_samples)
 
         # 1. Ringback tone guard: Ringing audio should NEVER be treated as customer voice (only before pickup)
-        if not is_call_answered and self.is_ringback_tone(cleaned_samples, self.gemini_input_sample_rate):
+        if not is_call_answered and self.is_ringback_tone(filtered_samples, self.gemini_input_sample_rate):
             self._consecutive_speech_frames = 0
             return b"", False, rms, peak
 
         # 2. Telephony Voice AGC (Automatic Gain Control):
         # Dynamically scales cellular phone speech up to clear telephony levels
-        if peak >= 140 and rms >= 24.0:
+        if peak >= 90 and rms >= 14.0:
             target_gain = min(4.5, max(1.2, 18000.0 / max(peak, 1600)))
             boosted_samples = np.clip(float_s * target_gain, -32768, 32767).astype(np.int16)
         else:
-            boosted_samples = cleaned_samples
+            boosted_samples = filtered_samples
 
         # 3. Acoustic Echo Cancellation & Adaptive Barge-In Threshold:
         # When AI is actively speaking, speakerphone acoustics bleed AI voice back into phone mic.
@@ -179,7 +219,7 @@ class AudioAdapter:
             is_active = (peak >= dynamic_peak_threshold and rms >= dynamic_rms_threshold)
             required_frames = 3  # ~60-90ms vocal persistence to filter speaker reflection
         else:
-            is_active = (peak >= 200 and rms >= 32.0)
+            is_active = (peak >= 120 and rms >= 16.0)
             required_frames = 1
 
         if is_active:

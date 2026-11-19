@@ -25,13 +25,25 @@ async def telecmi_audio_stream(
     await orch.handle_telecmi_stream(websocket, call_id=call_id)
 
 
+from app.services.auth_service import verify_session_token, SESSION_COOKIE_NAME
+
+
 @router.websocket("/ws/admin/live-monitor")
-async def admin_live_monitor(websocket: WebSocket):
+async def admin_live_monitor(
+    websocket: WebSocket,
+    token: Optional[str] = Query(None)
+):
     """
     WebSocket endpoint for admin dashboard:
     Receives real-time waveform energy levels, word-by-word streaming transcript,
     tool execution notifications, and live post-call QA metrics.
+    Requires authenticated admin session.
     """
+    auth_token = token or websocket.cookies.get(SESSION_COOKIE_NAME)
+    if not auth_token or not verify_session_token(auth_token):
+        await websocket.close(code=1008, reason="Authentication required")
+        return
+
     broadcaster = get_live_broadcaster()
     await broadcaster.connect(websocket)
     try:

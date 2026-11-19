@@ -64,3 +64,67 @@ def test_gemini_tools_and_live_config_latency():
     vad = config.realtime_input_config.automatic_activity_detection
     assert vad.end_of_speech_sensitivity == types.EndSensitivity.END_SENSITIVITY_HIGH
     assert vad.silence_duration_ms in (200, 250, 300, 350)
+
+
+@pytest.mark.asyncio
+async def test_natural_hangup_signoff_and_safety():
+    orch = VoiceOrchestrator()
+    session = orch.create_session(user_id=1, customer_phone="9876543210", order_id="WF-10928")
+
+    # Case 1: In the middle of conversation (Gemini hasn't called end_call) -> Must NOT conclude
+    assert orch._check_and_mark_call_concluded(session) is False
+    assert not session.metadata.get("call_concluded")
+
+    # Case 2: Gemini invokes end_call tool -> Concludes dynamically without hardcoded keywords
+    await orch._execute_tool("end_call", {"reason": "order_confirmed"}, session)
+    assert orch._check_and_mark_call_concluded(session) is True
+    assert session.metadata.get("call_concluded") is True
+    assert session.metadata.get("farewell_time") is not None
+
+    # Case 3: Customer acknowledges after conclusion -> Keeps concluded, refreshes farewell timer
+    orch._handle_post_turn_signoff(session, speaker="customer", text="User speaking any language")
+    assert session.metadata.get("call_concluded") is True
+
+@pytest.mark.asyncio
+async def test_pickup_greeting_does_not_conclude_prematurely():
+    """Verify telephone pickup greetings without Gemini end_call invocation never conclude."""
+    orch = VoiceOrchestrator()
+    session = orch.create_session(user_id=1, customer_phone="9876543210", order_id="WF-10929")
+
+    # In turn 1 pickup, Gemini does not invoke end_call
+    assert orch._check_and_mark_call_concluded(session) is False
+    assert not session.metadata.get("call_concluded")
+
+
+@pytest.mark.asyncio
+async def test_call_10_dialogue_concludes_cleanly():
+    """Verify Gemini calling end_call tool concludes call cleanly in any language."""
+    orch = VoiceOrchestrator()
+    session = orch.create_session(user_id=2, customer_phone="9521399708", order_id="WF-10929")
+
+    await orch._execute_tool("end_call", {"reason": "order_confirmed"}, session)
+    assert orch._check_and_mark_call_concluded(session) is True
+    assert session.metadata.get("call_concluded") is True
+    assert session.metadata.get("concluded_reason") == "order_confirmed"
+    assert session.metadata.get("farewell_time") is not None
+
+
+
+@pytest.mark.asyncio
+async def test_voicemail_and_answering_machine_orchestrator_handling():
+    """Verify voicemail / answering machine detection automatically marks NO_ANSWER and schedules retry."""
+    orch = VoiceOrchestrator()
+    session = orch.create_session(user_id=1, customer_phone="9876543210", order_id="WF-10930")
+
+    result = await orch._execute_tool("end_call", {"reason": "voicemail"}, session)
+    assert result["status"] == "success"
+    assert "Voicemail" in result["message"]
+    assert session.status == CallState.NO_ANSWER
+    assert session.metadata.get("call_concluded") is True
+    assert session.metadata.get("concluded_reason") == "voicemail"
+    assert session.metadata.get("farewell_delivered") is True
+
+    outcome = orch._finalize_outcome(session, notes="Initial test notes", success=True)
+    assert outcome.call_status == "no_answer"
+    assert outcome.resolution == "failed"
+    assert "Voicemail" in outcome.notes

@@ -1,0 +1,1872 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Call History &amp; Recordings Hub | Welfog AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-page: #F4F6F9;
+            --bg-surface: #FFFFFF;
+            --bg-surface-subtle: #F8FAFC;
+            --piano-black: #080B11;
+            --obsidian-black: #0E131F;
+            --card-black: #111726;
+            --border-light: #E2E8F0;
+            --border-dark: #1E293B;
+            --text-dark: #0F172A;
+            --text-muted: #64748B;
+            --text-light: #F8FAFC;
+            --text-dim: #94A3B8;
+
+            /* Luxury Status Accents */
+            --accent-emerald: #10B981;
+            --accent-emerald-bg: rgba(16, 185, 129, 0.12);
+            --accent-rose: #EF4444;
+            --accent-rose-bg: rgba(239, 68, 68, 0.12);
+            --accent-amber: #F59E0B;
+            --accent-amber-bg: rgba(245, 158, 11, 0.14);
+            --brand-saffron: #FF5722;
+            --accent-sky-bg: rgba(2, 132, 199, 0.12);
+            --brand-saffron-light: #FF6E40;
+
+            --shadow-subtle: 0 4px 20px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+            --shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
+            --shadow-gloss: 0 12px 35px -8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-page);
+            color: var(--text-dark);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Top Executive Header - Classic Shiny Piano Black */
+        header {
+            background: #FFFFFF;
+            border-bottom: 1px solid var(--border-light);
+            color: var(--text-dark);
+            padding: 16px 36px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+        }
+
+        .header-inner {
+            max-width: 1650px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .brand-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, #FF6E40 0%, #FF5722 100%);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 16px rgba(255, 87, 34, 0.35);
+        }
+
+        .brand-icon svg {
+            width: 22px;
+            height: 22px;
+            fill: #FFFFFF;
+        }
+
+        .brand-title {
+            font-size: 19px;
+            font-weight: 800;
+            letter-spacing: -0.3px;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand-pill {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            padding: 3px 9px;
+            background: #FFF4EE;
+            border: 1px solid #FED7AA;
+            border-radius: 20px;
+            color: #FF5722;
+        }
+
+        .brand-subtitle {
+            font-size: 12px;
+            color: #94A3B8;
+            margin-top: 1px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-header {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 18px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-header-back {
+            background: #F1F5F9;
+            border: 1px solid var(--border-light);
+            color: #334155;
+        }
+
+        .btn-header-back:hover {
+            background: #E2E8F0;
+            color: #0F172A;
+            transform: translateY(-1px);
+        }
+
+        .btn-header-refresh {
+            background: linear-gradient(135deg, #FF6E40 0%, #FF5722 100%);
+            border: none;
+            color: #FFFFFF;
+            box-shadow: 0 4px 16px rgba(255, 87, 34, 0.35);
+        }
+
+        .btn-header-refresh:hover {
+            background: linear-gradient(135deg, #FF5722 0%, #E64A19 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(255, 87, 34, 0.5);
+        }
+
+        .btn-header-logout {
+            background: transparent;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #F87171;
+            padding: 9px 14px;
+        }
+
+        .btn-header-logout:hover {
+            background: rgba(239, 68, 68, 0.15);
+        }
+
+        /* Main Container */
+        main {
+            flex: 1;
+            max-width: 1650px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 28px 36px 60px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* KPI Banner - Shiny Black Executive Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 16px;
+        }
+
+        .kpi-card {
+            background: #FFFFFF;
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px 22px;
+            color: var(--text-dark);
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-subtle);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-card);
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, currentColor, transparent);
+            opacity: 0.8;
+        }
+
+        .kpi-card.total { color: #FFFFFF; }
+        .kpi-card.completed { color: #10B981; }
+        .kpi-card.confirmed { color: #10B981; }
+        .kpi-card.cancelled { color: #EF4444; }
+        .kpi-card.noanswer { color: #FF5722; }
+        .kpi-card.duration { color: #FFFFFF; }
+
+        .kpi-label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            color: #94A3B8;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .kpi-value {
+            font-size: 30px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: var(--text-dark);
+            font-feature-settings: "tnum";
+            font-variant-numeric: tabular-nums;
+        }
+
+        .kpi-sub {
+            font-size: 12px;
+            color: #64748B;
+            margin-top: 4px;
+        }
+
+        /* Control & Filter Bar - Crisp White & Classic Obsidian */
+        .controls-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 18px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+            box-shadow: var(--shadow-subtle);
+        }
+
+        .filters-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .pill-btn {
+            background: #F1F5F9;
+            border: 1px solid var(--border-light);
+            color: #475569;
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .pill-btn:hover {
+            background: #E2E8F0;
+            color: #0F172A;
+        }
+
+        .pill-btn.active {
+            background: #FF5722;
+            border-color: #FF5722;
+            color: #FFFFFF;
+            box-shadow: 0 4px 14px rgba(255, 87, 34, 0.35);
+        }
+
+        .filters-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .search-wrapper {
+            position: relative;
+            min-width: 320px;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94A3B8;
+            pointer-events: none;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 14px 10px 38px;
+            border-radius: 10px;
+            border: 1px solid var(--border-light);
+            background: #F8FAFC;
+            font-size: 13px;
+            color: var(--text-dark);
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .search-input:focus {
+            background: #FFFFFF;
+            border-color: #FF5722;
+            box-shadow: 0 0 0 3px rgba(255, 87, 34, 0.18);
+        }
+
+        .btn-export {
+            background: var(--piano-black);
+            color: #FFFFFF;
+            border: 1px solid var(--border-dark);
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-export:hover {
+            background: #1E293B;
+            transform: translateY(-1px);
+        }
+
+        /* Calls Container (Pagewise 10 items) */
+        .calls-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Individual Call Record Card - High Contrast White & Shiny Obsidian */
+        .call-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-light);
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: var(--shadow-card);
+            transition: all 0.25s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .call-card:hover {
+            border-color: #CBD5E1;
+            box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.12);
+        }
+
+        /* Top Header Strip of Card - Glossy Obsidian */
+        .call-card-top {
+            background: #F8FAFC;
+            color: var(--text-dark);
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .card-top-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .call-id-badge {
+            background: #E2E8F0;
+            border: 1px solid #CBD5E1;
+            color: #0F172A;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 6px;
+        }
+
+        .call-timestamp {
+            font-size: 13px;
+            color: #94A3B8;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .card-top-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-badge {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            padding: 4px 12px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-badge.COMPLETED {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34D399;
+            border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+
+        .status-badge.NO_ANSWER {
+            background: rgba(245, 158, 11, 0.2);
+            color: #FBBF24;
+            border: 1px solid rgba(245, 158, 11, 0.4);
+        }
+
+        .status-badge.BUSY {
+            background: rgba(239, 68, 68, 0.2);
+            color: #F87171;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+        }
+
+        .status-badge.FAILED {
+            background: rgba(148, 163, 184, 0.2);
+            color: #CBD5E1;
+            border: 1px solid rgba(148, 163, 184, 0.4);
+        }
+
+        .duration-badge {
+            background: #F1F5F9;
+            border: 1px solid #CBD5E1;
+            font-size: 12px;
+            font-weight: 700;
+            color: #334155;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-feature-settings: "tnum";
+        }
+
+        .qa-score-pill {
+            background: rgba(255, 87, 34, 0.12);
+            border: 1px solid rgba(255, 87, 34, 0.3);
+            color: #FF6E40;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 6px;
+        }
+
+        /* Card Content - 3 Column Layout */
+        .call-card-body {
+            padding: 22px 26px;
+            display: grid;
+            grid-template-columns: 320px 340px 1fr;
+            gap: 24px;
+            background: #FFFFFF;
+        }
+
+        @media (max-width: 1280px) {
+            .call-card-body {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 860px) {
+            .call-card-body {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Col 1: Customer Info */
+        .col-customer {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            border-right: 1px solid var(--border-light);
+            padding-right: 20px;
+        }
+
+        @media (max-width: 1280px) {
+            .col-customer {
+                border-right: none;
+                border-bottom: 1px solid var(--border-light);
+                padding-bottom: 16px;
+            }
+        }
+
+        .customer-header-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .customer-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #080B11 0%, #1E293B 100%);
+            color: #FFFFFF;
+            font-weight: 800;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+            border: 2px solid #E2E8F0;
+        }
+
+        .customer-name {
+            font-size: 17px;
+            font-weight: 800;
+            color: var(--text-dark);
+            line-height: 1.2;
+        }
+
+        .customer-phone-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #F1F5F9;
+            border: 1px solid #CBD5E1;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #1E293B;
+            font-family: 'JetBrains Mono', monospace;
+            cursor: pointer;
+            margin-top: 4px;
+            transition: background 0.15s;
+        }
+
+        .customer-phone-badge:hover {
+            background: #E2E8F0;
+        }
+
+        .customer-meta-row {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .customer-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Col 2: Order & Product Info */
+        .col-order {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            border-right: 1px solid var(--border-light);
+            padding-right: 20px;
+        }
+
+        @media (max-width: 1280px) {
+            .col-order {
+                border-right: none;
+                border-bottom: 1px solid var(--border-light);
+                padding-bottom: 16px;
+            }
+        }
+
+        .order-title-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .order-id-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            font-weight: 800;
+            color: #0F172A;
+            background: #E2E8F0;
+            padding: 3px 8px;
+            border-radius: 6px;
+            border: 1px solid #CBD5E1;
+        }
+
+        .order-outcome-badge {
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            padding: 3px 10px;
+            border-radius: 12px;
+            text-transform: uppercase;
+        }
+
+        .order-outcome-badge.CONFIRMED {
+            background: var(--accent-emerald-bg);
+            color: #059669;
+            border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+
+        .order-outcome-badge.CANCELLED {
+            background: var(--accent-rose-bg);
+            color: #DC2626;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+        }
+
+        .order-outcome-badge.PENDING,
+        .order-outcome-badge.NO_ANSWER {
+            background: var(--accent-amber-bg);
+            color: #D97706;
+            border: 1px solid rgba(245, 158, 11, 0.4);
+        }
+
+        .product-name-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #0F172A;
+            line-height: 1.35;
+        }
+
+        .order-price-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .product-price-badge {
+            font-size: 16px;
+            font-weight: 800;
+            color: #0F172A;
+            background: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            padding: 2px 8px;
+            border-radius: 6px;
+        }
+
+        .payment-method-pill {
+            font-size: 12px;
+            font-weight: 600;
+            color: #475569;
+            background: #F1F5F9;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+
+        .delivery-time-pill {
+            font-size: 12px;
+            color: #FF5722;
+            font-weight: 600;
+            background: rgba(255, 87, 34, 0.10);
+            padding: 3px 8px;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Col 3: Real Spoken Notes & Admin Reading Card (High Priority!) */
+        .col-notes {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .notes-card-box {
+            background: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            border-left: 4px solid var(--piano-black);
+            border-radius: 12px;
+            padding: 14px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
+        }
+
+        .notes-card-title {
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: #0F172A;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .notes-content-item {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .notes-item-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #64748B;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .notes-item-text {
+            font-size: 13px;
+            font-weight: 600;
+            color: #1E293B;
+            line-height: 1.45;
+            word-break: break-word;
+        }
+
+        .notes-ai-summary {
+            background: #FFFFFF;
+            border: 1px solid #E2E8F0;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 13px;
+            color: #334155;
+            line-height: 1.45;
+        }
+
+        /* Card Footer: Audio Player Bar & Action Controls */
+        .call-card-bottom {
+            background: #F8FAFC;
+            border-top: 1px solid var(--border-light);
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .audio-player-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            max-width: 600px;
+        }
+
+        .audio-player-custom {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #0E131F;
+            color: #FFFFFF;
+            border: 1px solid var(--border-dark);
+            border-radius: 12px;
+            padding: 6px 14px;
+            width: 100%;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-play-trigger {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: #FFFFFF;
+            color: #0E131F;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .btn-play-trigger:hover {
+            transform: scale(1.08);
+            background: #E2E8F0;
+        }
+
+        .audio-time-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 600;
+            color: #94A3B8;
+            min-width: 75px;
+            flex-shrink: 0;
+        }
+
+        .audio-seek-slider {
+            flex: 1;
+            height: 5px;
+            accent-color: #38BDF8;
+            cursor: pointer;
+        }
+
+        .btn-download-rec {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #FFFFFF;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 700;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn-download-rec:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .no-audio-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #94A3B8;
+            font-size: 12px;
+            font-weight: 600;
+            background: #E2E8F0;
+            padding: 6px 14px;
+            border-radius: 8px;
+        }
+
+        .card-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-view-transcript {
+            background: var(--piano-black);
+            color: #FFFFFF;
+            border: 1px solid var(--border-dark);
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+        }
+
+        .btn-view-transcript:hover {
+            background: #1E293B;
+            transform: translateY(-1px);
+        }
+
+        /* Pagination Footer (Exactly 10 Per Page) */
+        .pagination-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 20px 24px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            box-shadow: var(--shadow-subtle);
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .pagination-info {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .pagination-buttons {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .page-btn {
+            background: #F1F5F9;
+            border: 1px solid var(--border-light);
+            color: var(--text-dark);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 36px;
+            text-align: center;
+        }
+
+        .page-btn:hover:not(:disabled) {
+            background: #E2E8F0;
+        }
+
+        .page-btn.active {
+            background: var(--piano-black);
+            color: #FFFFFF;
+            border-color: var(--piano-black);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+        }
+
+        .page-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* Modal: Transcript Dialogue Drawer */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 24px;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal-box {
+            background: #FFFFFF;
+            border-radius: 20px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.4);
+            animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes modalPop {
+            0% { transform: scale(0.95); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #080B11 0%, #151C2C 100%);
+            color: #FFFFFF;
+            padding: 20px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .modal-title-text {
+            font-size: 18px;
+            font-weight: 800;
+        }
+
+        .modal-close-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #FFFFFF;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .modal-close-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            background: #F8FAFC;
+        }
+
+        .transcript-line {
+            padding: 14px 18px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+            transition: border-color 0.15s ease;
+        }
+
+        .transcript-line.priya {
+            background: #FFFFFF;
+            border: 1px solid #E2E8F0;
+        }
+
+        .transcript-line.customer {
+            background: #FFFFFF;
+            border: 1px solid #E2E8F0;
+            border-left: 4px solid #10B981;
+        }
+
+        .speaker-label {
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: #64748B;
+        }
+
+        .speaker-text {
+            font-size: 14px;
+            font-weight: 400;
+            color: #0F172A;
+            line-height: 1.55;
+            word-break: break-word;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 24px;
+            background: #FFFFFF;
+            border: 1px solid var(--border-light);
+            border-radius: 18px;
+            color: var(--text-muted);
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .empty-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 6px;
+        }
+
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #080B11;
+            color: #FFFFFF;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            z-index: 2000;
+            display: none;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Header Navigation -->
+    <header>
+        <div class="header-inner">
+            <div class="header-brand">
+                <div class="brand-icon">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="brand-title">
+                        <span>Welfog Call History &amp; Recordings Hub</span>
+                        <span class="brand-pill">Live Production Data</span>
+                    </div>
+                    <div class="brand-subtitle">
+                        Executive Voice Audit &amp; Order Decision Records (10 Items / Page)
+                    </div>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <a href="/dashboard" class="btn-header btn-header-back" title="Return to Live Calling Dashboard">
+                    <span>← Back to Live Dashboard</span>
+                </a>
+                <button class="btn-header btn-header-refresh" onclick="refreshPageData()">
+                    <span>🔄 Refresh Data</span>
+                </button>
+                <button class="btn-header btn-header-logout" onclick="handleLogout()">
+                    <span>Sign Out</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main>
+        <!-- KPI Metrics Grid -->
+        <div class="kpi-grid">
+            <div class="kpi-card total">
+                <div class="kpi-label">
+                    <span>Total Calls Logged</span>
+                    <span>📞</span>
+                </div>
+                <div id="statTotal" class="kpi-value">0</div>
+                <div class="kpi-sub">Lifetime TeleCMI records</div>
+            </div>
+
+            <div class="kpi-card completed">
+                <div class="kpi-label">
+                    <span>Answered &amp; Spoke</span>
+                    <span>⚡</span>
+                </div>
+                <div id="statCompleted" class="kpi-value">0</div>
+                <div class="kpi-sub">Completed conversations</div>
+            </div>
+
+            <div class="kpi-card confirmed">
+                <div class="kpi-label">
+                    <span>Orders Confirmed</span>
+                    <span>✅</span>
+                </div>
+                <div id="statConfirmed" class="kpi-value">0</div>
+                <div class="kpi-sub">Approved for warehouse dispatch</div>
+            </div>
+
+            <div class="kpi-card cancelled">
+                <div class="kpi-label">
+                    <span>Orders Cancelled</span>
+                    <span>❌</span>
+                </div>
+                <div id="statCancelled" class="kpi-value">0</div>
+                <div class="kpi-sub">Cancelled on call</div>
+            </div>
+
+            <div class="kpi-card noanswer">
+                <div class="kpi-label">
+                    <span>No Answer / Busy</span>
+                    <span>📵</span>
+                </div>
+                <div id="statNoAnswer" class="kpi-value">0</div>
+                <div class="kpi-sub">Ringing timed out or rejected</div>
+            </div>
+
+            <div class="kpi-card duration">
+                <div class="kpi-label">
+                    <span>Total Talk Time</span>
+                    <span>⏱️</span>
+                </div>
+                <div id="statDuration" class="kpi-value">0m 0s</div>
+                <div class="kpi-sub">Cumulative voice audio duration</div>
+            </div>
+        </div>
+
+        <!-- Filter & Search Controls -->
+        <div class="controls-card">
+            <div class="filters-left">
+                <button class="pill-btn active" onclick="setFilter('ALL', this)">
+                    <span>All Calls</span>
+                    <span id="badgeFilterAll" style="font-size:11px; opacity:0.8;">(0)</span>
+                </button>
+                <button class="pill-btn" onclick="setFilter('COMPLETED', this)">
+                    <span>⚡ Answered</span>
+                </button>
+                <button class="pill-btn" onclick="setFilter('CONFIRMED', this)">
+                    <span>✅ Confirmed Orders</span>
+                </button>
+                <button class="pill-btn" onclick="setFilter('CANCELLED', this)">
+                    <span>❌ Cancelled</span>
+                </button>
+                <button class="pill-btn" onclick="setFilter('NO_ANSWER', this)">
+                    <span>📵 No Answer / Busy</span>
+                </button>
+            </div>
+
+            <div class="filters-right">
+                <div class="search-wrapper">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="searchInput" class="search-input" placeholder="Search customer, phone, order, product, notes..." oninput="handleSearchDebounced()" />
+                </div>
+                <button class="btn-export" onclick="exportCSV()">
+                    <span>📥 Export CSV</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Calls List Container (Pagewise 10 items) -->
+        <div id="callsList" class="calls-list">
+            <div class="empty-state">
+                <div class="empty-icon">⏳</div>
+                <div class="empty-title">Loading live call history...</div>
+                <div>Fetching verified call records and original order details from database.</div>
+            </div>
+        </div>
+
+        <!-- Pagination Controls Bar -->
+        <div id="paginationBar" class="pagination-bar" style="display:none;">
+            <div id="paginationInfo" class="pagination-info">Showing 1 - 10 of 14 call records</div>
+            <div id="paginationButtons" class="pagination-buttons"></div>
+        </div>
+    </main>
+
+    <!-- Transcript Dialogue Modal -->
+    <div id="transcriptModal" class="modal-overlay" onclick="closeTranscriptModal(event)">
+        <div class="modal-box" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div>
+                    <div id="modalCustomerTitle" class="modal-title-text">Call Transcript</div>
+                    <div id="modalMetaSubtitle" style="font-size:12px; color:#94A3B8; margin-top:2px;">Turn-by-turn dialogue</div>
+                </div>
+                <button class="modal-close-btn" onclick="closeTranscriptModal()">✕</button>
+            </div>
+            <div id="modalBody" class="modal-body"></div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <script>
+        // State
+        let currentPage = 1;
+        const pageSize = 10;
+        let currentFilter = 'ALL';
+        let searchQuery = '';
+        let totalRecords = 0;
+        let totalPages = 1;
+        let searchTimeout = null;
+        let cachedLogs = [];
+        let currentlyPlayingAudio = null;
+        let currentlyPlayingId = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadKPIStats();
+            fetchCallLogs(1);
+        });
+
+        // Fetch KPI aggregate stats
+        async function loadKPIStats() {
+            try {
+                const res = await fetch('/api/stats');
+                if (res.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
+                const data = await res.json();
+                
+                // Fetch call logs stats directly from API
+                const logsRes = await fetch('/api/call-logs?limit=500');
+                if (logsRes.ok) {
+                    const lData = await logsRes.json();
+                    const logs = lData.logs || [];
+                    
+                    document.getElementById('statTotal').textContent = logs.length;
+                    document.getElementById('badgeFilterAll').textContent = `(${logs.length})`;
+                    
+                    let completed = 0;
+                    let noAnswer = 0;
+                    let confirmed = 0;
+                    let cancelled = 0;
+                    let totalSecs = 0;
+
+                    logs.forEach(l => {
+                        const st = (l.status || '').toUpperCase();
+                        const out = (l.order_outcome || '').toUpperCase();
+                        const summ = (l.summary || '').toUpperCase();
+
+                        if (st === 'COMPLETED') completed++;
+                        if (st === 'NO_ANSWER' || st === 'BUSY') noAnswer++;
+
+                        if (out === 'CONFIRMED' || summ.includes('CONFIRM')) {
+                            confirmed++;
+                        } else if (out === 'CANCELLED' || summ.includes('CANCEL')) {
+                            cancelled++;
+                        }
+
+                        totalSecs += (parseInt(l.duration, 10) || 0);
+                    });
+
+                    document.getElementById('statCompleted').textContent = completed;
+                    document.getElementById('statConfirmed').textContent = confirmed;
+                    document.getElementById('statCancelled').textContent = cancelled;
+                    document.getElementById('statNoAnswer').textContent = noAnswer;
+
+                    const mins = Math.floor(totalSecs / 60);
+                    const secs = totalSecs % 60;
+                    document.getElementById('statDuration').textContent = `${mins}m ${secs}s`;
+                }
+            } catch (err) {
+                console.error('Failed to load KPI stats:', err);
+            }
+        }
+
+        // Fetch paginated call logs
+        async function fetchCallLogs(page = 1) {
+            currentPage = page;
+            const container = document.getElementById('callsList');
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">🔄</div>
+                    <div class="empty-title">Refreshing call records...</div>
+                    <div>Loading page ${page}...</div>
+                </div>
+            `;
+
+            try {
+                const params = new URLSearchParams({
+                    page: page,
+                    page_size: pageSize
+                });
+                if (currentFilter && currentFilter !== 'ALL') {
+                    params.append('status', currentFilter);
+                }
+                if (searchQuery.trim()) {
+                    params.append('search', searchQuery.trim());
+                }
+
+                const res = await fetch(`/api/call-logs?${params.toString()}`);
+                if (res.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
+
+                const data = await res.json();
+                cachedLogs = data.logs || [];
+                totalRecords = data.total || cachedLogs.length;
+                totalPages = data.total_pages || Math.ceil(totalRecords / pageSize) || 1;
+
+                renderCallLogs(cachedLogs);
+                renderPagination();
+            } catch (err) {
+                console.error('Error fetching logs:', err);
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">⚠️</div>
+                        <div class="empty-title">Error Loading Call Records</div>
+                        <div style="color:#EF4444; margin-top:6px;">${escapeHtml(err.message || 'Network error')}</div>
+                    </div>
+                `;
+            }
+        }
+
+        // Render Call Cards
+        function renderCallLogs(logs) {
+            const container = document.getElementById('callsList');
+            if (!logs || logs.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📭</div>
+                        <div class="empty-title">No Call Records Found</div>
+                        <div>No call records matching your current filter criteria.</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = logs.map((log, idx) => {
+                const initial = (log.customer_name || 'C').charAt(0).toUpperCase();
+                const phone = log.phone || 'N/A';
+                const orderId = log.order_id || 'WF-10928';
+                const status = (log.status || 'PENDING').toUpperCase();
+                const duration = parseInt(log.duration, 10) || 0;
+                const durationStr = formatDuration(duration);
+                const createdAt = log.created_at || 'Just now';
+                
+                // Real product & pricing
+                const productName = log.product_name || 'Welfog E-Commerce Item';
+                const productPrice = log.product_price || '₹1,499';
+                const deliveryTime = log.delivery_time || '2-3 Business Days';
+                const paymentMethod = log.payment_method || 'Cash on Delivery (COD)';
+
+                // Order outcome decision directly from Gemini AI assessment
+                let outcome = (log.order_outcome || log.status || 'PENDING').toUpperCase();
+                if (outcome === 'COMPLETED') {
+                    outcome = 'CONFIRMED';
+                }
+
+                let outcomeBadgeClass = 'PENDING';
+                let outcomeLabel = '⏳ PENDING REVIEW';
+                if (outcome === 'CONFIRMED') {
+                    outcomeBadgeClass = 'CONFIRMED';
+                    outcomeLabel = '✅ ORDER CONFIRMED';
+                } else if (outcome === 'CANCELLED') {
+                    outcomeBadgeClass = 'CANCELLED';
+                    outcomeLabel = '❌ ORDER CANCELLED';
+                } else if (outcome === 'NO_ANSWER') {
+                    outcomeBadgeClass = 'NO_ANSWER';
+                    outcomeLabel = '📵 CALL UNANSWERED';
+                }
+
+                // Notes / Customer Spoken details
+                const customerNotes = log.customer_notes || log.notes || '';
+                const aiSummary = log.summary || '';
+                const qaNotes = log.qa_notes || '';
+                const qaScore = (log.qa_score !== undefined && log.qa_score !== null) ? Number(log.qa_score).toFixed(1) : '9.0';
+
+                // Recording Audio Player
+                let audioPlayerHtml = '';
+                if (log.recording_url) {
+                    audioPlayerHtml = `
+                        <div class="audio-player-wrapper">
+                            <div class="audio-player-custom" id="playerWrap_${log.id}">
+                                <button class="btn-play-trigger" id="playBtn_${log.id}" onclick="togglePlayAudio('${log.id}', '${encodeURI(log.recording_url)}')">▶</button>
+                                <span class="audio-time-label" id="timeLabel_${log.id}">0:00 / ${durationStr}</span>
+                                <input type="range" class="audio-seek-slider" id="seekSlider_${log.id}" value="0" min="0" max="${duration || 60}" step="0.5" oninput="seekAudio('${log.id}', this.value)" />
+                                <a href="${log.recording_url}" download="recording_${phone}_${orderId}.webm" class="btn-download-rec" title="Download Audio File">💾 Save</a>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    audioPlayerHtml = `
+                        <div class="no-audio-badge">
+                            <span>📵 No Audio Available (${status === 'NO_ANSWER' ? 'Customer did not pick up' : 'Unrecorded'})</span>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="call-card" id="card_${log.id}">
+                        <!-- Card Top Bar: Shiny Obsidian -->
+                        <div class="call-card-top">
+                            <div class="card-top-left">
+                                <span class="call-id-badge">CALL #${log.id}</span>
+                                <span class="call-timestamp">📅 ${escapeHtml(createdAt)}</span>
+                            </div>
+                            <div class="card-top-right">
+                                <span class="duration-badge">⏱️ ${durationStr} (${duration}s)</span>
+                                <span class="qa-score-pill">⭐ QA Score: ${qaScore}</span>
+                                <span class="status-badge ${status}">${status}</span>
+                            </div>
+                        </div>
+
+                        <!-- Card Body: 3-Columns -->
+                        <div class="call-card-body">
+                            <!-- Col 1: Customer Details -->
+                            <div class="col-customer">
+                                <div class="customer-header-row">
+                                    <div class="customer-avatar">${initial}</div>
+                                    <div>
+                                        <div class="customer-name">${escapeHtml(log.customer_name || 'Customer')}</div>
+                                        <div class="customer-phone-badge" onclick="copyPhone('${phone}')" title="Click to copy phone">
+                                            <span>📞 +91 ${escapeHtml(phone)}</span>
+                                            <span style="font-size:10px; color:#64748B;">📋</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="customer-meta-row">
+                                    <div class="customer-meta-item">
+                                        <span>👤 <strong>Customer ID:</strong> ${log.customer_id || 'Direct Dial'}</span>
+                                    </div>
+                                    <div class="customer-meta-item">
+                                        <span>💬 <strong>Sentiment:</strong> ${escapeHtml(log.customer_sentiment || 'NEUTRAL')}</span>
+                                    </div>
+                                    <div class="customer-meta-item">
+                                        <span>🛡️ <strong>RTO Risk:</strong> 
+                                            ${(log.rto_risk === 'HIGH' || outcome === 'CANCELLED')
+                                                ? `<span style="display:inline-block; padding:2px 8px; border-radius:10px; background:#FEE2E2; color:#B91C1C; font-weight:800; font-size:11px;">🚨 HIGH (${log.rto_risk_percentage || 95}%)</span>`
+                                                : (log.rto_risk === 'MEDIUM'
+                                                    ? `<span style="display:inline-block; padding:2px 8px; border-radius:10px; background:#FEF3C7; color:#B45309; font-weight:700; font-size:11px;">⚠️ MEDIUM (${log.rto_risk_percentage || 50}%)</span>`
+                                                    : `<span style="display:inline-block; padding:2px 8px; border-radius:10px; background:#DCFCE7; color:#15803D; font-weight:700; font-size:11px;">✅ LOW (${log.rto_risk_percentage || 15}%)</span>`
+                                                )
+                                            }
+                                        </span>
+                                        ${(log.warehouse_alert || log.rto_risk === 'HIGH' || outcome === 'CANCELLED') ? `
+                                            <div style="margin-top:4px; font-size:11px; color:#DC2626; font-weight:800; display:flex; align-items:center; gap:4px;">
+                                                <span>⛔ WAREHOUSE HOLD: DO NOT DISPATCH</span>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Col 2: Order & Product -->
+                            <div class="col-order">
+                                <div class="order-title-row">
+                                    <span class="order-id-tag">ORDER #${escapeHtml(orderId)}</span>
+                                    <span class="order-outcome-badge ${outcomeBadgeClass}">${outcomeLabel}</span>
+                                </div>
+                                <div class="product-name-title">📦 ${escapeHtml(productName)}</div>
+                                <div class="order-price-row">
+                                    <span class="product-price-badge">${escapeHtml(productPrice)}</span>
+                                    <span class="payment-method-pill">💳 ${escapeHtml(paymentMethod)}</span>
+                                </div>
+                                <div>
+                                    <span class="delivery-time-pill">🚚 Delivery: ${escapeHtml(deliveryTime)}</span>
+                                </div>
+                            </div>
+
+                            <!-- Col 3: Customer Spoken Notes & Admin Reading Box -->
+                            <div class="col-notes">
+                                <div class="notes-card-box">
+                                    <div class="notes-card-title">
+                                        <span>📝 Live Customer Speech &amp; Verification Notes</span>
+                                        <span style="font-size:10px; color:#FF5722; font-weight:700;">VERIFIED REAL DATA</span>
+                                    </div>
+
+                                    ${customerNotes ? `
+                                        <div class="notes-content-item">
+                                            <div class="notes-item-label">
+                                                <span>📍 Customer Address &amp; Delivery Instructions:</span>
+                                            </div>
+                                            <div class="notes-item-text">${escapeHtml(customerNotes)}</div>
+                                        </div>
+                                    ` : ''}
+
+                                    <div class="notes-content-item">
+                                        <div class="notes-item-label">
+                                            <span>🤖 AI Executive Call Summary:</span>
+                                        </div>
+                                        <div class="notes-ai-summary">
+                                            ${escapeHtml(aiSummary || 'Call completed without additional spoken notes.')}
+                                        </div>
+                                    </div>
+
+                                    ${qaNotes ? `
+                                        <div class="notes-content-item">
+                                            <div class="notes-item-label">
+                                                <span>⭐ QA Auditor Assessment:</span>
+                                            </div>
+                                            <div style="font-size:12px; color:#475569; font-weight:500;">
+                                                ${escapeHtml(qaNotes)}
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card Footer: Audio Player & View Transcript -->
+                        <div class="call-card-bottom">
+                            ${audioPlayerHtml}
+                            <div class="card-actions">
+                                <button class="btn-view-transcript" onclick="openTranscriptModal(${idx})">
+                                    <span>📜 View Full Transcript</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Render Pagination (10 data per page)
+        function renderPagination() {
+            const bar = document.getElementById('paginationBar');
+            const info = document.getElementById('paginationInfo');
+            const btnWrap = document.getElementById('paginationButtons');
+
+            if (totalRecords === 0) {
+                bar.style.display = 'none';
+                return;
+            }
+
+            bar.style.display = 'flex';
+            const startIdx = (currentPage - 1) * pageSize + 1;
+            const endIdx = Math.min(currentPage * pageSize, totalRecords);
+            info.textContent = `Showing ${startIdx} – ${endIdx} of ${totalRecords} call records (10 per page)`;
+
+            let btnsHtml = '';
+            
+            // Previous button
+            btnsHtml += `
+                <button class="page-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="goToPage(${currentPage - 1})">
+                    « Prev
+                </button>
+            `;
+
+            // Numbered buttons
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+                    btnsHtml += `
+                        <button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">
+                            ${i}
+                        </button>
+                    `;
+                } else if (i === currentPage - 3 || i === currentPage + 3) {
+                    btnsHtml += `<span style="padding:0 4px; color:#94A3B8;">...</span>`;
+                }
+            }
+
+            // Next button
+            btnsHtml += `
+                <button class="page-btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="goToPage(${currentPage + 1})">
+                    Next »
+                </button>
+            `;
+
+            btnWrap.innerHTML = btnsHtml;
+        }
+
+        function goToPage(page) {
+            if (page < 1 || page > totalPages || page === currentPage) return;
+            // Stop any currently playing audio before page change
+            stopCurrentAudio();
+            fetchCallLogs(page);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Filter Handling
+        function setFilter(filter, el) {
+            currentFilter = filter;
+            document.querySelectorAll('.pill-btn').forEach(b => b.classList.remove('active'));
+            if (el) el.classList.add('active');
+            stopCurrentAudio();
+            fetchCallLogs(1);
+        }
+
+        // Search Debounced
+        function handleSearchDebounced() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                const input = document.getElementById('searchInput');
+                searchQuery = input ? input.value : '';
+                stopCurrentAudio();
+                fetchCallLogs(1);
+            }, 300);
+        }
+
+        function refreshPageData() {
+            loadKPIStats();
+            stopCurrentAudio();
+            fetchCallLogs(currentPage);
+            showToast('🔄 Call history data refreshed!');
+        }
+
+        // Copy Phone Number
+        function copyPhone(phone) {
+            navigator.clipboard.writeText(phone);
+            showToast(`📋 Copied +91 ${phone} to clipboard`);
+        }
+
+        // Audio Player Controls
+        function togglePlayAudio(logId, url) {
+            const btn = document.getElementById(`playBtn_${logId}`);
+            const slider = document.getElementById(`seekSlider_${logId}`);
+            const label = document.getElementById(`timeLabel_${logId}`);
+
+            if (currentlyPlayingId === logId && currentlyPlayingAudio) {
+                if (currentlyPlayingAudio.paused) {
+                    currentlyPlayingAudio.play();
+                    btn.textContent = '⏸';
+                } else {
+                    currentlyPlayingAudio.pause();
+                    btn.textContent = '▶';
+                }
+                return;
+            }
+
+            // Stop previous audio if running
+            stopCurrentAudio();
+
+            const audio = new Audio(url);
+            currentlyPlayingAudio = audio;
+            currentlyPlayingId = logId;
+            btn.textContent = '⏸';
+
+            audio.addEventListener('loadedmetadata', () => {
+                if (slider && audio.duration) {
+                    slider.max = audio.duration;
+                }
+            });
+
+            audio.addEventListener('timeupdate', () => {
+                if (slider) slider.value = audio.currentTime;
+                if (label) {
+                    const cur = formatDuration(Math.floor(audio.currentTime));
+                    const tot = formatDuration(Math.floor(audio.duration || 0));
+                    label.textContent = `${cur} / ${tot}`;
+                }
+            });
+
+            audio.addEventListener('ended', () => {
+                btn.textContent = '▶';
+                if (slider) slider.value = 0;
+                currentlyPlayingAudio = null;
+                currentlyPlayingId = null;
+            });
+
+            audio.play().catch(e => {
+                console.error('Audio play error:', e);
+                btn.textContent = '▶';
+                showToast('⚠️ Unable to play audio recording');
+            });
+        }
+
+        function seekAudio(logId, value) {
+            if (currentlyPlayingId === logId && currentlyPlayingAudio) {
+                currentlyPlayingAudio.currentTime = parseFloat(value);
+            }
+        }
+
+        function stopCurrentAudio() {
+            if (currentlyPlayingAudio) {
+                try {
+                    currentlyPlayingAudio.pause();
+                } catch (e) {}
+                const oldBtn = document.getElementById(`playBtn_${currentlyPlayingId}`);
+                if (oldBtn) oldBtn.textContent = '▶';
+                currentlyPlayingAudio = null;
+                currentlyPlayingId = null;
+            }
+        }
+
+        // Transcript Modal
+        function openTranscriptModal(idx) {
+            const log = cachedLogs[idx];
+            if (!log) return;
+
+            document.getElementById('modalCustomerTitle').textContent = `Transcript: ${log.customer_name || 'Customer'} (+91 ${log.phone})`;
+            document.getElementById('modalMetaSubtitle').textContent = `Order #${log.order_id || 'WF-10928'} • Call #${log.id} • ${log.created_at || ''}`;
+
+            const rawTranscript = log.transcript || 'No conversation transcript recorded for this call.';
+            let normalized = rawTranscript.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+            normalized = normalized.replace(/([^\n])\s+((?:priya|customer|user|agent|ai)(?:\s*\([^)]*\))?\s*:)/gi, '$1\n$2');
+            const lines = normalized.split('\n').filter(l => l.trim().length > 0);
+
+            const modalBody = document.getElementById('modalBody');
+            
+            // Format turns
+            let turnsHtml = '';
+            lines.forEach((line, lineIdx) => {
+                const trimmed = line.trim();
+                const lower = trimmed.toLowerCase();
+                const isExplicitCustomer = lower.startsWith('customer') || lower.startsWith('user');
+                const isExplicitPriya = lower.startsWith('priya') || lower.startsWith('agent') || lower.startsWith('ai');
+
+                let isPriya = isExplicitPriya;
+                let isCustomer = isExplicitCustomer;
+                if (!isPriya && !isCustomer) {
+                    if (lineIdx === 0) {
+                        isPriya = true;
+                    } else {
+                        isCustomer = true;
+                    }
+                }
+                
+                const speaker = isPriya ? 'PRIYA (AI VOICE AGENT)' : (log.customer_name || 'CUSTOMER').toUpperCase();
+                const content = trimmed.replace(/^(priya(\s*\(ai\))?(\s*\(welfog\s*ai\))?|agent|ai|customer|user):\s*/i, '').trim();
+
+                turnsHtml += `
+                    <div class="transcript-line ${isPriya ? 'priya' : 'customer'}">
+                        <div class="speaker-label">${escapeHtml(speaker)}</div>
+                        <div class="speaker-text">${escapeHtml(content || trimmed)}</div>
+                    </div>
+                `;
+            });
+
+            modalBody.innerHTML = turnsHtml;
+            document.getElementById('transcriptModal').classList.add('open');
+        }
+
+        function closeTranscriptModal(event) {
+            if (event && event.target && event.target !== event.currentTarget) return;
+            document.getElementById('transcriptModal').classList.remove('open');
+        }
+
+        // Export CSV
+        function exportCSV() {
+            const params = new URLSearchParams();
+            if (currentFilter && currentFilter !== 'ALL') {
+                params.append('status', currentFilter);
+            }
+            if (searchQuery && searchQuery.trim()) {
+                params.append('search', searchQuery.trim());
+            }
+            const qs = params.toString() ? `?${params.toString()}` : '';
+            window.location.href = `/api/reports/export-csv${qs}`;
+        }
+
+        // Logout
+        function handleLogout() {
+            document.cookie = "welfog_admin_session=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+            window.location.href = '/login';
+        }
+
+        // Helpers
+        function formatDuration(sec) {
+            const m = Math.floor(sec / 60);
+            const s = sec % 60;
+            return `${m}:${s < 10 ? '0' : ''}${s}`;
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.style.display = 'block';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+
+</html>

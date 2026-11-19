@@ -9,17 +9,26 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-primary: #07090E;
-      --bg-card: rgba(17, 24, 39, 0.75);
-      --bg-card-border: rgba(255, 255, 255, 0.08);
-      --accent-teal: #0D9488;
-      --accent-cyan: #06B6D4;
-      --accent-green: #10B981;
-      --accent-red: #EF4444;
-      --accent-glow: rgba(13, 148, 136, 0.25);
-      --text-main: #F8FAFC;
-      --text-muted: #94A3B8;
-      --font-display: 'Outfit', sans-serif;
+      --bg-primary: #F8F9FA;
+      --bg-card: #FFFFFF;
+      --bg-card-border: #E5E7EB;
+
+      /* Executive Luxury Saffron & Black Palette */
+      --brand-saffron: #FF5722;
+      --brand-saffron-light: #FF6E40;
+      --brand-saffron-hover: #F4511E;
+      --brand-saffron-tint: #FFF4EE;
+      --brand-saffron-glow: rgba(255, 87, 34, 0.25);
+
+      --accent-teal: #FF5722;
+      --accent-cyan: #FF5722;
+      --accent-green: #059669;
+      --accent-red: #DC2626;
+      --accent-glow: rgba(255, 87, 34, 0.25);
+
+      --text-main: #0F172A;
+      --text-muted: #64748B;
+      --font-display: 'Plus Jakarta Sans', sans-serif;
       --font-body: 'Inter', sans-serif;
     }
 
@@ -32,8 +41,8 @@
     body {
       background-color: var(--bg-primary);
       background-image: 
-        radial-gradient(circle at 15% 20%, rgba(13, 148, 136, 0.15) 0%, transparent 40%),
-        radial-gradient(circle at 85% 80%, rgba(6, 182, 212, 0.12) 0%, transparent 40%);
+        radial-gradient(circle at 15% 20%, rgba(255, 87, 34, 0.04) 0%, transparent 45%),
+        radial-gradient(circle at 85% 80%, rgba(255, 110, 64, 0.03) 0%, transparent 45%);
       color: var(--text-main);
       font-family: var(--font-body);
       min-height: 100vh;
@@ -53,7 +62,7 @@
       padding: 16px 24px;
       background: var(--bg-card);
       border: 1px solid var(--bg-card-border);
-      backdrop-filter: blur(12px);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
       border-radius: 16px;
     }
 
@@ -67,7 +76,7 @@
       width: 40px;
       height: 40px;
       border-radius: 10px;
-      background: linear-gradient(135deg, var(--accent-teal), var(--accent-cyan));
+      background: linear-gradient(135deg, var(--brand-saffron-light), var(--brand-saffron));
       display: flex;
       align-items: center;
       justify-content: center;
@@ -112,9 +121,9 @@
     }
 
     .status-badge.calling {
-      background: rgba(6, 182, 212, 0.15);
-      border-color: rgba(6, 182, 212, 0.4);
-      color: #38BDF8;
+      background: var(--brand-saffron-tint);
+      border-color: rgba(255, 87, 34, 0.4);
+      color: #FF7043;
       animation: pulse 1.5s infinite;
     }
 
@@ -148,13 +157,12 @@
     .card {
       background: var(--bg-card);
       border: 1px solid var(--bg-card-border);
-      backdrop-filter: blur(12px);
       border-radius: 18px;
       padding: 24px;
       display: flex;
       flex-direction: column;
       gap: 20px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
     }
 
     .card-title {
@@ -179,9 +187,9 @@
     }
 
     input, select {
-      background: rgba(255, 255, 255, 0.04);
+      background: #F8FAFC;
       border: 1px solid var(--bg-card-border);
-      color: #ffffff;
+      color: var(--text-main);
       padding: 12px 14px;
       border-radius: 10px;
       font-size: 14px;
@@ -191,8 +199,8 @@
     }
 
     input:focus, select:focus {
-      border-color: var(--accent-cyan);
-      box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.2);
+      border-color: var(--brand-saffron);
+      box-shadow: 0 0 0 3px rgba(255, 87, 34, 0.2);
     }
 
     .agent-meta-box {
@@ -238,14 +246,15 @@
     }
 
     .btn-call {
-      background: linear-gradient(135deg, var(--accent-teal), #059669);
+      background: linear-gradient(135deg, var(--brand-saffron-light), var(--brand-saffron));
       color: #ffffff;
-      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+      box-shadow: 0 4px 18px var(--brand-saffron-glow);
     }
 
     .btn-call:hover:not(:disabled) {
+      background: linear-gradient(135deg, var(--brand-saffron), var(--brand-saffron-hover));
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+      box-shadow: 0 6px 24px rgba(255, 87, 34, 0.5);
     }
 
     .btn-call:disabled {
@@ -270,8 +279,8 @@
     }
 
     .visualizer-container {
-      background: rgba(0, 0, 0, 0.3);
-      border: 1px solid var(--bg-card-border);
+      background: #FFF8F5;
+      border: 1px solid #FED7AA;
       border-radius: 14px;
       height: 110px;
       display: flex;
@@ -330,8 +339,38 @@
 
   <!-- Global Audio Context and WebRTC Interception -->
   <script>
+    // Global RTCPeerConnection Interceptor to guarantee WebRTC access across all SDKs
+    const OriginalRTCPeerConnection = window.RTCPeerConnection;
+    window._telecmiPeerConnections = new Set();
+    if (OriginalRTCPeerConnection) {
+      window.RTCPeerConnection = function(...args) {
+        const pc = new OriginalRTCPeerConnection(...args);
+        window._telecmiPeerConnections.add(pc);
+        pc.addEventListener('connectionstatechange', () => {
+          if (pc.connectionState === 'closed' || pc.connectionState === 'failed') {
+            window._telecmiPeerConnections.delete(pc);
+          }
+        });
+        pc.addEventListener('iceconnectionstatechange', () => {
+          if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+            try { if (typeof bridgeAiToPeerConnection === 'function') bridgeAiToPeerConnection(); } catch (e) {}
+          }
+        });
+        return pc;
+      };
+      window.RTCPeerConnection.prototype = OriginalRTCPeerConnection.prototype;
+      for (const prop of Object.getOwnPropertyNames(OriginalRTCPeerConnection)) {
+        if (!(prop in window.RTCPeerConnection)) {
+          try { window.RTCPeerConnection[prop] = OriginalRTCPeerConnection[prop]; } catch (e) {}
+        }
+      }
+    }
+
     let audioCtx = null;
     let aiMediaDest = null;
+    let phoneMasterGainNode = null;
+    let hiddenAiConsumerAudio = null;
+    let monitorGainNode = null;
     let remoteSourceNode = null;
     let remotePreampNode = null;
     let nextPlayTime = 0;
@@ -339,10 +378,8 @@
 
     function getAudioCtx() {
       if (!audioCtx) {
-        // Use default hardware sample rate (e.g. 48000 Hz) for compatibility with WebRTC & Bluetooth
         const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
         audioCtx = new AudioCtxClass();
-        aiMediaDest = audioCtx.createMediaStreamDestination();
       }
       if (audioCtx.state === 'suspended') {
         audioCtx.resume();
@@ -350,11 +387,57 @@
       return audioCtx;
     }
 
+    // Fresh & Live MediaStream for WebRTC transmission
+    // Ensures Piopiy's closeMediaStream cannot kill subsequent calls
+    function getAiMediaStream() {
+      const ctx = getAudioCtx();
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+      const currentTracks = aiMediaDest && aiMediaDest.stream ? aiMediaDest.stream.getAudioTracks() : [];
+      const isTrackEnded = currentTracks.length === 0 || currentTracks[0].readyState === 'ended';
+
+      if (!aiMediaDest || isTrackEnded) {
+        aiMediaDest = ctx.createMediaStreamDestination();
+
+        if (!phoneMasterGainNode) {
+          phoneMasterGainNode = ctx.createGain();
+          phoneMasterGainNode.gain.value = 2.0; // 2x Telephony boost for cellular clarity
+        } else {
+          try { phoneMasterGainNode.disconnect(); } catch (e) {}
+        }
+        phoneMasterGainNode.connect(aiMediaDest);
+
+        // Continuous inaudible carrier so Chrome WebRTC RTP encoder never suspends packet clock
+        try {
+          const keepAlive = ctx.createConstantSource ? ctx.createConstantSource() : ctx.createOscillator();
+          const keepAliveGain = ctx.createGain();
+          keepAliveGain.gain.value = 0.000001; // Inaudible carrier
+          keepAlive.connect(keepAliveGain);
+          keepAliveGain.connect(aiMediaDest);
+          keepAlive.start();
+        } catch (e) {}
+
+        // CHROME CONSUMER ACTIVATOR: Prevents Chrome from discarding silent WebAudio stream
+        try {
+          if (!hiddenAiConsumerAudio) {
+            hiddenAiConsumerAudio = document.createElement('audio');
+            hiddenAiConsumerAudio.autoplay = true;
+            hiddenAiConsumerAudio.muted = true;
+            hiddenAiConsumerAudio.style.display = 'none';
+            document.body.appendChild(hiddenAiConsumerAudio);
+          }
+          hiddenAiConsumerAudio.srcObject = aiMediaDest.stream;
+          hiddenAiConsumerAudio.play().catch(() => {});
+        } catch (e) {}
+      }
+      return aiMediaDest.stream;
+    }
+
     // Intercept getUserMedia so TeleCMI transmits ONLY pure Gemini AI speech
     const originalGetUserMedia = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
     navigator.mediaDevices.getUserMedia = async function(constraints) {
       if (constraints && constraints.audio) {
-        const ctx = getAudioCtx();
         try {
           // Acquire mic for browser/TeleCMI permission handshake
           const realStream = await originalGetUserMedia({ audio: true });
@@ -364,8 +447,8 @@
         } catch (e) {
           console.warn('Real mic access warning:', e);
         }
-        // TeleCMI WebRTC transmits aiMediaDest.stream (pure Gemini speech only!)
-        return aiMediaDest.stream;
+        // TeleCMI WebRTC transmits fresh live aiMediaDest stream
+        return getAiMediaStream();
       }
       return originalGetUserMedia(constraints);
     };
@@ -649,26 +732,33 @@
 
     function bridgeAiToPeerConnection() {
       try {
-        if (!piopiy || !piopiy.ua || !piopiy.ua._sessions) return;
-        for (const id in piopiy.ua._sessions) {
-          const sess = piopiy.ua._sessions[id];
-          const pc = sess._connection || sess.connection;
-          if (pc && pc.getSenders) {
-            const senders = pc.getSenders().filter(s => s.track && s.track.kind === 'audio');
-            for (const sender of senders) {
-              if (aiMediaDest && aiMediaDest.stream && aiMediaDest.stream.getAudioTracks().length > 0) {
-                const aiTrack = aiMediaDest.stream.getAudioTracks()[0];
-                sender.replaceTrack(aiTrack).then(() => {
-                  log('📡 Bridged Gemini AI audio stream into phone line (WebRTC replaceTrack).', 'success');
-                }).catch(err => {
-                  console.warn('replaceTrack warning:', err);
-                });
+        const stream = getAiMediaStream();
+        const aiTracks = stream ? stream.getAudioTracks() : [];
+        if (aiTracks.length === 0 || aiTracks[0].readyState === 'ended') {
+          console.warn('[WebRTC] aiTrack not ready');
+          return;
+        }
+        const aiTrack = aiTracks[0];
+
+        if (window._telecmiPeerConnections) {
+          for (const pc of window._telecmiPeerConnections) {
+            if (pc.connectionState === 'closed') continue;
+            if (pc.getSenders) {
+              const senders = pc.getSenders().filter(s => !s.track || s.track.kind === 'audio');
+              for (const sender of senders) {
+                if (sender.track !== aiTrack) {
+                  sender.replaceTrack(aiTrack).then(() => {
+                    log('📡 Priya speech output bridged directly into WebRTC phone line (Loud & Clear replaceTrack active).', 'success');
+                  }).catch(err => {
+                    console.warn('[WebRTC] replaceTrack warning:', err);
+                  });
+                }
               }
             }
           }
         }
       } catch(err) {
-        console.warn('bridgeAiToPeerConnection error:', err);
+        console.warn('[WebRTC] bridgeAiToPeerConnection error:', err);
       }
     }
 
@@ -708,6 +798,7 @@
       }
 
       getAudioCtx();
+      getAiMediaStream();
 
       let phone = document.getElementById('customerPhone').value.trim();
       phone = phone.replace(/\D/g, '');
@@ -780,6 +871,9 @@
         }
       };
 
+      let callConnectedAt = Date.now();
+      let callConcludedFlag = false;
+
       aiWebSocket.onmessage = (event) => {
         if (event.data instanceof ArrayBuffer) {
           playGeminiPcm(event.data);
@@ -787,10 +881,31 @@
           try {
             const data = JSON.parse(event.data);
             if (data.event === 'interrupted') {
-              log('⚡ Customer spoke — AI interrupted. Stopped previous speech instantly.', 'info');
-              stopAllGeminiAudio();
+              const callAgeSec = (Date.now() - callConnectedAt) / 1000;
+              if (callAgeSec > 4 && !callConcludedFlag) {
+                log('⚡ Customer spoke — AI interrupted. Stopped previous speech instantly.', 'info');
+                stopAllGeminiAudio();
+              } else {
+                log('⚡ Customer backchannel noted — keeping audio stream smooth.', 'info');
+              }
             } else if (data.event === 'turn_complete') {
               log('👂 Priya (AI) finished speaking — listening for customer response...', 'info');
+            } else if (data.event === 'order_concluded' || data.event === 'end_call') {
+              callConcludedFlag = true;
+              const reasonMsg = data.reason || 'Order resolved';
+              log('⚡ AI concluding order: ' + reasonMsg + '. Delivering farewell message...', 'info');
+            } else if (data.event === 'hangup') {
+              const reasonMsg = data.reason || 'Call completed';
+              const ctx = getAudioCtx();
+              let remainingPlayMs = 0;
+              if (ctx && nextPlayTime > ctx.currentTime) {
+                remainingPlayMs = Math.ceil((nextPlayTime - ctx.currentTime) * 1000);
+              }
+              const totalDelay = Math.max(data.delay_ms || 500, remainingPlayMs + 700);
+              log(`📞 AI concluded call: ${reasonMsg}. Finishing farewell audio (${remainingPlayMs}ms remaining). Disconnecting in ${totalDelay}ms...`, 'info');
+              setTimeout(() => {
+                handleHangupCall();
+              }, totalDelay);
             } else if (data.event === 'tool_calling') {
               log(`⚙️ Priya is looking up live info via tool: ${data.tool}...`, 'info');
             } else if (data.text) {
@@ -839,7 +954,7 @@
         remotePreampNode.gain.value = 2.5;
         remoteSourceNode.connect(remotePreampNode);
 
-        customerCaptureNode = ctx.createScriptProcessor(2048, 1, 1);
+        customerCaptureNode = ctx.createScriptProcessor(1024, 1, 1);
         let chunkSentCount = 0;
 
         customerCaptureNode.onaudioprocess = (e) => {
@@ -896,10 +1011,22 @@
         const source = ctx.createBufferSource();
         source.buffer = audioBuffer;
 
-        if (aiMediaDest) {
-          source.connect(aiMediaDest);
+        // 1. ROUTE TO PHONE LINE (WebRTC via fresh live aiMediaDest with 2x Telephony Boost)
+        getAiMediaStream();
+        if (phoneMasterGainNode) {
+          source.connect(phoneMasterGainNode);
         }
-        source.connect(ctx.destination);
+
+        // Ensure peer connection is actively transmitting this track
+        bridgeAiToPeerConnection();
+
+        // 2. ROUTE TO LAPTOP SPEAKERS (Monitor)
+        if (!monitorGainNode) {
+          monitorGainNode = ctx.createGain();
+          monitorGainNode.connect(ctx.destination);
+        }
+        monitorGainNode.gain.value = 1.0;
+        source.connect(monitorGainNode);
 
         activeGeminiSources.push(source);
         source.onended = () => {
@@ -937,7 +1064,7 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.beginPath();
         ctx.lineWidth = 2;
-        ctx.strokeStyle = '#06B6D4';
+        ctx.strokeStyle = '#FF5722';
 
         const mid = canvas.height / 2;
         for (let x = 0; x < canvas.width; x++) {
