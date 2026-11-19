@@ -473,6 +473,8 @@ class VoiceOrchestrator:
                             
                             if session.metadata.get("call_concluded") or session.metadata.get("farewell_time"):
                                 session.metadata["post_farewell_ack"] = True
+                                session.metadata["farewell_delivered"] = False
+                                session.metadata["farewell_time"] = time.time()
 
                             # Verified human voice pickup detection (not dial tone)
                             if not pickup_event.is_set():
@@ -540,6 +542,8 @@ class VoiceOrchestrator:
                                     
                                     if session.metadata.get("call_concluded") or session.metadata.get("farewell_time"):
                                         session.metadata["post_farewell_ack"] = True
+                                        session.metadata["farewell_delivered"] = False
+                                        session.metadata["farewell_time"] = time.time()
 
                                     if not pickup_event.is_set():
                                         pickup_event.set()
@@ -961,12 +965,12 @@ class VoiceOrchestrator:
                     last_active = max(last_cust, last_ai_audio, last_ai_turn)
 
                     should_hangup = False
-                    # Natural human hangup timing: ~1.2s - 1.4s natural gap after farewell exchange
+                    # Natural human hangup timing: Generous 4.0s - 4.5s silence gap so customer is never cut off
                     if farewell_t:
-                        if (now_t - last_active >= 1.3) and (now_t - farewell_t >= 1.2):
+                        if (now_t - last_active >= 4.0) and (now_t - farewell_t >= 3.5):
                             should_hangup = True
                     elif concluded_t:
-                        if now_t - last_active >= 1.8:
+                        if now_t - last_active >= 4.5:
                             should_hangup = True
 
                     if should_hangup:
@@ -1076,11 +1080,21 @@ class VoiceOrchestrator:
         """
         Manages post-turn lifecycle dynamically:
         If call was concluded via Gemini's end_call tool, any continuing customer speech refreshes
-        the timer so that Gemini answers the customer dynamically in whatever language they speak.
-        Zero hardcoded words or linguistic string-matching heuristics.
+        the timer and resets farewell_delivered so that Gemini answers the customer dynamically.
+        If the customer asks a question or objects, the concluded state is revived to keep the call alive.
         """
         if session.metadata.get("call_concluded") and speaker == "customer":
+            session.metadata["farewell_delivered"] = False
             session.metadata["farewell_time"] = time.time()
+            clean_lower = (text or "").lower()
+            question_or_objection = any(q in clean_lower for q in [
+                "?", "kaun", "kya", "kyun", "kab", "kaisa", "kaha", "kahan", "nahi", "ruk", "suno", "wait", "hold", "what", "why", "when", "how", "no", "app"
+            ])
+            if question_or_objection:
+                session.metadata["call_concluded"] = False
+                session.metadata["farewell_time"] = None
+                session.metadata["concluded_time"] = None
+                logger.info("customer_spoke_substantive_turn_after_farewell_revived_call", call_id=session.call_id, text=text)
 
     def _check_and_mark_call_concluded(self, session: CallSession) -> bool:
         """

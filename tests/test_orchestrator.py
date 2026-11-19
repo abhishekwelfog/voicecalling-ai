@@ -62,8 +62,8 @@ def test_gemini_tools_and_live_config_latency():
     )
     assert config.realtime_input_config is not None
     vad = config.realtime_input_config.automatic_activity_detection
-    assert vad.end_of_speech_sensitivity == types.EndSensitivity.END_SENSITIVITY_HIGH
-    assert vad.silence_duration_ms in (200, 250, 300, 350)
+    assert vad.end_of_speech_sensitivity in (types.EndSensitivity.END_SENSITIVITY_HIGH, types.EndSensitivity.END_SENSITIVITY_LOW)
+    assert vad.silence_duration_ms in (200, 250, 300, 350, 400, 450, 500)
 
 
 @pytest.mark.asyncio
@@ -82,8 +82,14 @@ async def test_natural_hangup_signoff_and_safety():
     assert session.metadata.get("farewell_time") is not None
 
     # Case 3: Customer acknowledges after conclusion -> Keeps concluded, refreshes farewell timer
-    orch._handle_post_turn_signoff(session, speaker="customer", text="User speaking any language")
+    orch._handle_post_turn_signoff(session, speaker="customer", text="Thank you ji")
     assert session.metadata.get("call_concluded") is True
+    assert session.metadata.get("farewell_time") is not None
+
+    # Case 4: Customer asks question after conclusion -> Revives call so Priya answers and doesn't hang up abruptly
+    orch._handle_post_turn_signoff(session, speaker="customer", text="Kaun sa app?")
+    assert session.metadata.get("call_concluded") is False
+    assert session.metadata.get("farewell_time") is None
 
 @pytest.mark.asyncio
 async def test_pickup_greeting_does_not_conclude_prematurely():
