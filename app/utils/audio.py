@@ -202,8 +202,9 @@ class AudioAdapter:
             return b"", False, rms, peak
 
         # 2. Telephony Voice AGC (Automatic Gain Control):
-        # Dynamically scales cellular phone speech up to clear telephony levels
-        if peak >= 90 and rms >= 14.0:
+        # Dynamically scales cellular phone speech up to clear telephony levels ONLY during customer speech
+        # CRITICAL: Never apply AGC amplification during AI speech to prevent blowing up speakerphone acoustic echo
+        if not is_ai_speaking and peak >= 90 and rms >= 14.0:
             target_gain = min(4.5, max(1.2, 18000.0 / max(peak, 1600)))
             boosted_samples = np.clip(float_s * target_gain, -32768, 32767).astype(np.int16)
         else:
@@ -211,13 +212,13 @@ class AudioAdapter:
 
         # 3. Acoustic Echo Cancellation & Adaptive Barge-In Threshold:
         # When AI is actively speaking, speakerphone acoustics bleed AI voice back into phone mic.
-        # We raise threshold adaptively relative to AI volume and require multi-frame vocal persistence.
+        # We raise threshold adaptively relative to AI volume to prevent AI from hearing its own echo.
         if is_ai_speaking:
-            # Dynamic AEC floor: scales adaptively with AI output amplitude while preserving responsive barge-in
-            dynamic_peak_threshold = max(240, min(700, int(recent_ai_peak * 0.22)))
-            dynamic_rms_threshold = max(35.0, min(140.0, dynamic_peak_threshold * 0.22))
+            # Dynamic AEC floor: scales with AI output amplitude to prevent self-interruption from speaker bleed
+            dynamic_peak_threshold = max(380, min(1200, int(recent_ai_peak * 0.35)))
+            dynamic_rms_threshold = max(75.0, min(280.0, dynamic_peak_threshold * 0.28))
             is_active = (peak >= dynamic_peak_threshold and rms >= dynamic_rms_threshold)
-            required_frames = 2  # ~40ms vocal persistence to filter speaker reflection while ensuring fast barge-in
+            required_frames = 2  # ~40ms persistence
         else:
             is_active = (peak >= 110 and rms >= 14.0)
             required_frames = 1

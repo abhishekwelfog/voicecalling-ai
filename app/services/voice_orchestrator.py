@@ -470,20 +470,6 @@ class VoiceOrchestrator:
                             session.metadata["last_customer_speech_time"] = time.time()
                             session.metadata["last_ai_turn_end_time"] = time.time()
                             session.metadata["silence_prompt_count"] = 0
-                            
-                            # IMMEDIATE BARGE-IN INTERRUPTION:
-                            # If customer speaks while AI was speaking, immediately cut off outgoing AI audio!
-                            if is_ai_speaking:
-                                session.metadata["is_ai_speaking"] = False
-                                session.metadata["interrupted_time"] = time.time()
-                                logger.info("customer_barge_in_interruption_cutting_ai_audio", call_id=session.call_id, rms=rms, peak=peak)
-                                try:
-                                    await websocket.send_text(json.dumps({
-                                        "event": "interrupted",
-                                        "action": "clear_buffer"
-                                    }))
-                                except Exception:
-                                    pass
 
                             if session.metadata.get("call_concluded") or session.metadata.get("farewell_time"):
                                 session.metadata["post_farewell_ack"] = True
@@ -553,20 +539,6 @@ class VoiceOrchestrator:
                                     session.metadata["last_customer_speech_time"] = time.time()
                                     session.metadata["last_ai_turn_end_time"] = time.time()
                                     session.metadata["silence_prompt_count"] = 0
-                                    
-                                    # IMMEDIATE BARGE-IN INTERRUPTION:
-                                    # If customer speaks while AI was speaking, immediately cut off outgoing AI audio!
-                                    if is_ai_speaking:
-                                        session.metadata["is_ai_speaking"] = False
-                                        session.metadata["interrupted_time"] = time.time()
-                                        logger.info("customer_barge_in_interruption_cutting_ai_audio", call_id=session.call_id, rms=rms, peak=peak)
-                                        try:
-                                            await websocket.send_text(json.dumps({
-                                                "event": "interrupted",
-                                                "action": "clear_buffer"
-                                            }))
-                                        except Exception:
-                                            pass
 
                                     if session.metadata.get("call_concluded") or session.metadata.get("farewell_time"):
                                         session.metadata["post_farewell_ack"] = True
@@ -796,8 +768,8 @@ class VoiceOrchestrator:
                                 for part in getattr(model_turn, "parts", []):
                                     inline_data = getattr(part, "inline_data", None)
                                     if inline_data and getattr(inline_data, "data", None):
-                                        # Drop any trailing audio frames arriving within 500ms of interruption (local barge-in or Gemini interrupt)
-                                        if time.time() - session.metadata.get("interrupted_time", 0) < 0.50:
+                                        # Drop any trailing audio frames arriving within 200ms of interruption
+                                        if time.time() - session.metadata.get("interrupted_time", 0) < 0.20:
                                             continue
 
                                         # Anti-loop shield: Drop repeated trailing audio once single farewell has been delivered
