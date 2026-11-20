@@ -375,7 +375,12 @@ class GeminiService:
         return types.LiveConnectConfig(
             response_modalities=["AUDIO"],
             input_audio_transcription=types.AudioTranscriptionConfig(
-                language_codes=["hi", "en", "hi-IN", "en-IN"]
+                language_codes=[
+                    "hi", "en", "hi-IN", "en-IN", 
+                    "mr-IN", "gu-IN", "bn-IN", "pa-IN", 
+                    "ta-IN", "te-IN", "kn-IN", "ml-IN",
+                    "mr", "gu", "bn", "pa", "ta", "te", "kn", "ml"
+                ]
             ),
             output_audio_transcription=types.AudioTranscriptionConfig(),
             temperature=0.30,

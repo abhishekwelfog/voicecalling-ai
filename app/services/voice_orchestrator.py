@@ -765,7 +765,10 @@ class VoiceOrchestrator:
                                         farewell_markers = [
                                             "din shubh ho", "shubh ho", "dhanyavad", "dhanyawaad",
                                             "order confirm ho gaya", "order cancel kar deti hoon",
-                                            "कन्फर्म हो गया", "शुभ हो", "धन्यवाद", "कैंसिल कर देती"
+                                            "कन्फर्म हो गया", "शुभ हो", "धन्यवाद", "कैंसिल कर देती",
+                                            "have a great day", "order has been confirmed", "order confirmed",
+                                            "order is confirmed", "thank you for shopping", "order has been cancelled",
+                                            "order is cancelled", "take care", "goodbye"
                                         ]
                                         if any(m in lower_c for m in farewell_markers):
                                             session.metadata["call_concluded"] = True
@@ -862,7 +865,10 @@ class VoiceOrchestrator:
                                         farewell_markers = [
                                             "din shubh ho", "shubh ho", "dhanyavad", "dhanyawaad",
                                             "order confirm ho gaya", "order cancel kar deti hoon",
-                                            "कन्फर्म हो गया", "शुभ हो", "धन्यवाद", "कैंसिल कर देती"
+                                            "कन्फर्म हो गया", "शुभ हो", "धन्यवाद", "कैंसिल कर देती",
+                                            "have a great day", "order has been confirmed", "order confirmed",
+                                            "order is confirmed", "thank you for shopping", "order has been cancelled",
+                                            "order is cancelled", "take care", "goodbye"
                                         ]
                                         if any(m in lower_c for m in farewell_markers):
                                             session.metadata["call_concluded"] = True
