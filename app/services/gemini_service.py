@@ -375,12 +375,7 @@ class GeminiService:
         return types.LiveConnectConfig(
             response_modalities=["AUDIO"],
             input_audio_transcription=types.AudioTranscriptionConfig(
-                language_codes=[
-                    "hi", "en", "hi-IN", "en-IN", 
-                    "mr-IN", "gu-IN", "bn-IN", "pa-IN", 
-                    "ta-IN", "te-IN", "kn-IN", "ml-IN",
-                    "mr", "gu", "bn", "pa", "ta", "te", "kn", "ml"
-                ]
+                language_codes=["hi", "en", "hi-IN", "en-IN"]
             ),
             output_audio_transcription=types.AudioTranscriptionConfig(),
             temperature=0.30,
@@ -391,10 +386,10 @@ class GeminiService:
             ),
             realtime_input_config=types.RealtimeInputConfig(
                 automatic_activity_detection=types.AutomaticActivityDetection(
-                    start_of_speech_sensitivity=types.StartSensitivity.START_SENSITIVITY_LOW,
+                    start_of_speech_sensitivity=types.StartSensitivity.START_SENSITIVITY_HIGH,
                     end_of_speech_sensitivity=types.EndSensitivity.END_SENSITIVITY_LOW,
                     prefix_padding_ms=200,
-                    silence_duration_ms=450
+                    silence_duration_ms=400
                 )
             ),
             system_instruction=types.Content(

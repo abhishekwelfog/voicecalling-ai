@@ -2866,15 +2866,15 @@
                 remotePreampNode = ctx.createGain();
                 remotePreampNode.gain.value = 3.6;
 
+                // 1. FAN-OUT to call recording destination: apply compressor + 3.6x preamp so saved .webm has loud, studio-balanced customer audio
                 remoteSourceNode.connect(customerCompressorNode);
                 customerCompressorNode.connect(remotePreampNode);
-
-                // 1. FAN-OUT to call recording destination (pure phone caller audio saved into .webm)
                 if (recordingDest) {
                     remotePreampNode.connect(recordingDest);
                 }
 
-                // 2. FAN-OUT to ScriptProcessorNode for real-time WebSocket streaming to Gemini Live (1024 buffer = ~21ms latency)
+                // 2. FAN-OUT to ScriptProcessorNode for Gemini Live: connect DIRECTLY from remoteSourceNode
+                // Clean unpumped audio with zero compressor hiss/release delay so Gemini Live VAD endpoints instantly in 400ms!
                 customerCaptureNode = ctx.createScriptProcessor(1024, 1, 1);
                 let chunkSentCount = 0;
 
@@ -2901,7 +2901,8 @@
                     }
                 };
 
-                remotePreampNode.connect(customerCaptureNode);
+                // Direct connection for real-time AI listener (pure, unpumped, low-latency)
+                remoteSourceNode.connect(customerCaptureNode);
 
                 // Keep-alive gain node (1e-5) to prevent Chromium audio render thread silent culling
                 const keepAliveNode = ctx.createGain();
