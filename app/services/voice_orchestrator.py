@@ -496,8 +496,13 @@ class VoiceOrchestrator:
                             )
 
                         if gated_pcm:
+                            # Protect opening greeting: don't let initial line connection clicks/ringback residue interrupt Priya
+                            is_opening = session.metadata.get("opening_greeting_active", False)
+                            greeting_elapsed = time.time() - session.metadata.get("greeting_start_time", 0.0)
+                            if is_opening and greeting_elapsed < 2.0 and peak < 1600:
+                                pass
                             # While AI is speaking, only forward if it is customer voice (above AEC threshold)
-                            if is_ai_speaking and not is_speech:
+                            elif is_ai_speaking and not is_speech:
                                 pass
                             else:
                                 await gemini_session.send_realtime_input(
@@ -562,7 +567,11 @@ class VoiceOrchestrator:
                                     )
 
                                 if gated_pcm:
-                                    if is_ai_speaking and not is_speech:
+                                    is_opening = session.metadata.get("opening_greeting_active", False)
+                                    greeting_elapsed = time.time() - session.metadata.get("greeting_start_time", 0.0)
+                                    if is_opening and greeting_elapsed < 2.0 and peak < 1600:
+                                        pass
+                                    elif is_ai_speaking and not is_speech:
                                         pass
                                     else:
                                         await gemini_session.send_realtime_input(
@@ -749,6 +758,21 @@ class VoiceOrchestrator:
                                                 await websocket.send_text(json.dumps({"event": "ai_transcript", "text": cleaned}))
                                             except Exception:
                                                 pass
+
+                                        # Auto-safeguard: If Priya delivered final confirmation or farewell dialogue,
+                                        # mark concluded immediately so silence watcher never wakes up!
+                                        lower_c = cleaned.lower()
+                                        farewell_markers = [
+                                            "din shubh ho", "shubh ho", "dhanyavad", "dhanyawaad",
+                                            "order confirm ho gaya", "order cancel kar deti hoon",
+                                            "कन्फर्म हो गया", "शुभ हो", "धन्यवाद", "कैंसिल कर देती"
+                                        ]
+                                        if any(m in lower_c for m in farewell_markers):
+                                            session.metadata["call_concluded"] = True
+                                            session.metadata["farewell_delivered"] = True
+                                            session.metadata["farewell_time"] = time.time()
+                                            session.metadata.setdefault("concluded_reason", "order_confirmed")
+                                            logger.info("farewell_dialogue_spoken_auto_concluded", call_id=session.call_id)
                                             self._handle_post_turn_signoff(session, speaker="ai", text=cleaned)
 
                                 logger.info("gemini_speech_interrupted_by_customer", call_id=session.call_id)
@@ -831,6 +855,21 @@ class VoiceOrchestrator:
                                                 await websocket.send_text(json.dumps({"event": "ai_transcript", "text": cleaned}))
                                             except Exception:
                                                 pass
+
+                                        # Auto-safeguard: If Priya delivered final confirmation or farewell dialogue,
+                                        # mark concluded immediately so silence watcher never wakes up!
+                                        lower_c = cleaned.lower()
+                                        farewell_markers = [
+                                            "din shubh ho", "shubh ho", "dhanyavad", "dhanyawaad",
+                                            "order confirm ho gaya", "order cancel kar deti hoon",
+                                            "कन्फर्म हो गया", "शुभ हो", "धन्यवाद", "कैंसिल कर देती"
+                                        ]
+                                        if any(m in lower_c for m in farewell_markers):
+                                            session.metadata["call_concluded"] = True
+                                            session.metadata["farewell_delivered"] = True
+                                            session.metadata["farewell_time"] = time.time()
+                                            session.metadata.setdefault("concluded_reason", "order_confirmed")
+                                            logger.info("farewell_dialogue_spoken_auto_concluded", call_id=session.call_id)
 
                                 session.metadata["is_ai_speaking"] = False
                                 session.metadata["opening_greeting_active"] = False
@@ -980,6 +1019,10 @@ class VoiceOrchestrator:
                     continue
 
                 if session.metadata.get("is_ai_speaking"):
+                    continue
+
+                # Never trigger silence follow-ups if call has reached farewell or conclusion
+                if session.metadata.get("call_concluded") or session.metadata.get("farewell_time") or session.metadata.get("farewell_delivered"):
                     continue
 
                 last_cust = session.metadata.get("last_customer_speech_time") or 0.0

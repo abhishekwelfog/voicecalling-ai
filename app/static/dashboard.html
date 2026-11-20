@@ -2310,6 +2310,7 @@
         let customerRecSourceNode = null;
         let customerRecGain = null;
         let remoteSourceNode = null;
+        let customerCompressorNode = null;
         let remotePreampNode = null;
         let localRecSourceNode = null;
         let localRecGain = null;
@@ -2841,6 +2842,10 @@
                     try { remoteSourceNode.disconnect(); } catch (e) { }
                     remoteSourceNode = null;
                 }
+                if (customerCompressorNode) {
+                    try { customerCompressorNode.disconnect(); } catch (e) { }
+                    customerCompressorNode = null;
+                }
                 if (remotePreampNode) {
                     try { remotePreampNode.disconnect(); } catch (e) { }
                     remotePreampNode = null;
@@ -2849,10 +2854,20 @@
                 // Single MediaStreamSourceNode for the remote phone stream
                 remoteSourceNode = ctx.createMediaStreamSource(remoteStream);
 
-                // Optimal 2.8x Preamp Gain for crystal-clear cellular audio into recording and AI listener
+                // Hardware-grade Dynamics Compressor: brings quiet/muffled caller audio up to clear volume without clipping
+                customerCompressorNode = ctx.createDynamicsCompressor();
+                customerCompressorNode.threshold.setValueAtTime(-28, ctx.currentTime);
+                customerCompressorNode.knee.setValueAtTime(10, ctx.currentTime);
+                customerCompressorNode.ratio.setValueAtTime(4.0, ctx.currentTime);
+                customerCompressorNode.attack.setValueAtTime(0.003, ctx.currentTime);
+                customerCompressorNode.release.setValueAtTime(0.20, ctx.currentTime);
+
+                // Clean post-compressor makeup gain (3.6x) for balanced telephony volume in recording and AI ASR
                 remotePreampNode = ctx.createGain();
-                remotePreampNode.gain.value = 2.8;
-                remoteSourceNode.connect(remotePreampNode);
+                remotePreampNode.gain.value = 3.6;
+
+                remoteSourceNode.connect(customerCompressorNode);
+                customerCompressorNode.connect(remotePreampNode);
 
                 // 1. FAN-OUT to call recording destination (pure phone caller audio saved into .webm)
                 if (recordingDest) {

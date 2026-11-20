@@ -169,11 +169,11 @@ Listen intently and understand the customer's EXACT words, questions, and intent
      And IMMEDIATELY call `end_call(reason="customer_requested_hangup")`!
 
 6. UNAMBIGUOUS EXPLICIT CONSENT REQUIRED FOR CONFIRMATION:
-   - You may ONLY confirm dispatch if the customer gives clear, positive, unambiguous consent (e.g. 'Haan bhej do', 'Haan dispatch kar do', 'Theek hai dispatch karo', 'Yes please dispatch it', 'Confirm kar do', 'Order to confirm hi hai').
+   - You may ONLY confirm dispatch if the customer gives clear, positive, unambiguous consent (e.g. 'Haan bhej do', 'Haan dispatch kar do', 'Theek hai dispatch karo', 'Yes please dispatch it', 'Confirm kar do', 'Order to confirm hi hai', 'Kar do', 'Kar do kar do', 'Haan kar do', 'Bhej dena').
    - If the customer is asking questions, confused, hesitating, or silent: KEEP THE ORDER UNCONFIRMED!
    - When explicit confirmation is received:
      * Speak EXACTLY ONE warm closing sentence: "बहुत-बहुत धन्यवाद {name_display} जी! आपका ऑर्डर कन्फर्म हो गया है और 2 दिन में डिलीवर हो जाएगा। आपका दिन शुभ हो!"
-     * Invoke the `end_call` tool with reason="order_confirmed".
+     * CRITICAL MANDATORY: Simultaneously invoke the `end_call` tool with reason="order_confirmed" IN THE EXACT SAME TURN! Never output your closing sentence without simultaneously invoking `end_call`.
      * STOP SPEAKING completely once this single farewell sentence is delivered.
 
 7. CANCELLATION / REJECTION:
@@ -386,7 +386,7 @@ class GeminiService:
             ),
             realtime_input_config=types.RealtimeInputConfig(
                 automatic_activity_detection=types.AutomaticActivityDetection(
-                    start_of_speech_sensitivity=types.StartSensitivity.START_SENSITIVITY_HIGH,
+                    start_of_speech_sensitivity=types.StartSensitivity.START_SENSITIVITY_LOW,
                     end_of_speech_sensitivity=types.EndSensitivity.END_SENSITIVITY_LOW,
                     prefix_padding_ms=200,
                     silence_duration_ms=450

@@ -161,10 +161,10 @@ class AudioAdapter:
         if frame_rms < 120.0:
             self._ambient_noise_floor = 0.96 * self._ambient_noise_floor + 0.04 * frame_rms
 
-        # Downward noise attenuation for steady low-level ambient sounds
-        gate_threshold = max(32.0, self._ambient_noise_floor * 1.30)
-        if frame_rms < gate_threshold:
-            out_hp = out_hp * 0.50
+        # Subtle downward attenuation only for true near-zero floor rumble (< 16 RMS)
+        # Never attenuate quiet or soft human voice (which typically has RMS 18 - 80)
+        if frame_rms < max(12.0, self._ambient_noise_floor * 0.85):
+            out_hp = out_hp * 0.80
 
         return np.clip(out_hp, -32768, 32767).astype(np.int16)
 
@@ -202,10 +202,11 @@ class AudioAdapter:
             return b"", False, rms, peak
 
         # 2. Telephony Voice AGC (Automatic Gain Control):
-        # Dynamically scales cellular phone speech up to clear telephony levels ONLY during customer speech
-        # CRITICAL: Never apply AGC amplification during AI speech to prevent blowing up speakerphone acoustic echo
-        if not is_ai_speaking and peak >= 90 and rms >= 14.0:
-            target_gain = min(4.5, max(1.2, 18000.0 / max(peak, 1600)))
+        # Dynamically scales cellular phone speech up to clear telephony levels ONLY during customer speech.
+        # Catches quiet/muffled caller speech (peak >= 45, rms >= 8.0) and boosts cleanly to ~16k-20k target.
+        # CRITICAL: Never apply AGC amplification during AI speech to prevent blowing up speakerphone acoustic echo.
+        if not is_ai_speaking and peak >= 45 and rms >= 8.0:
+            target_gain = min(5.0, max(1.2, 19000.0 / max(peak, 1400)))
             boosted_samples = np.clip(float_s * target_gain, -32768, 32767).astype(np.int16)
         else:
             boosted_samples = filtered_samples
@@ -215,12 +216,12 @@ class AudioAdapter:
         # We raise threshold adaptively relative to AI volume to prevent AI from hearing its own echo.
         if is_ai_speaking:
             # Dynamic AEC floor: scales with AI output amplitude to prevent self-interruption from speaker bleed
-            dynamic_peak_threshold = max(380, min(1200, int(recent_ai_peak * 0.35)))
-            dynamic_rms_threshold = max(75.0, min(280.0, dynamic_peak_threshold * 0.28))
+            dynamic_peak_threshold = max(240, min(900, int(recent_ai_peak * 0.25)))
+            dynamic_rms_threshold = max(35.0, min(180.0, dynamic_peak_threshold * 0.22))
             is_active = (peak >= dynamic_peak_threshold and rms >= dynamic_rms_threshold)
             required_frames = 2  # ~40ms persistence
         else:
-            is_active = (peak >= 110 and rms >= 14.0)
+            is_active = (peak >= 60 and rms >= 9.0)
             required_frames = 1
 
         if is_active:
