@@ -362,10 +362,40 @@ class VoiceOrchestrator:
         except Exception as e:
             logger.error("voice_orchestrator_stream_error", call_id=session.call_id, error=str(e))
             session.transition_to(CallState.FAILED)
+            err_str = str(e)
+            if "prepayment credits are depleted" in err_str or "RESOURCE_EXHAUSTED" in err_str or "402" in err_str:
+                display_err = "⚠️ Gemini API Error: Your Google AI Studio prepayment credits are depleted (402 RESOURCE_EXHAUSTED). Please recharge credits at https://ai.studio/projects to resume AI calling."
+            elif "401" in err_str or "API_KEY_INVALID" in err_str or "API key not valid" in err_str:
+                display_err = "⚠️ Gemini API Error: Invalid Gemini API key. Please check GEMINI_API_KEY in .env"
+            else:
+                display_err = f"⚠️ Gemini Live Connection Failed: {err_str[:120]}"
+            session.metadata["error_reason"] = display_err
+
+            try:
+                broadcaster = get_live_broadcaster()
+                asyncio.create_task(broadcaster.broadcast({
+                    "type": "gemini_error",
+                    "call_id": session.call_id,
+                    "error": err_str,
+                    "display_error": display_err
+                }))
+            except Exception:
+                pass
+
+            try:
+                await websocket.send_json({
+                    "event": "error",
+                    "type": "gemini_error",
+                    "message": display_err
+                })
+            except Exception:
+                pass
         finally:
             if session.status not in {CallState.COMPLETED, CallState.FAILED, CallState.DISCONNECTED}:
                 session.transition_to(CallState.COMPLETED)
-            self._finalize_outcome(session, "conversation_completed", True)
+            is_success = session.status == CallState.COMPLETED
+            note = "conversation_completed" if is_success else session.metadata.get("error_reason", "Call failed")
+            self._finalize_outcome(session, note, is_success)
 
     async def _await_pickup_and_greet(
         self,
@@ -1289,21 +1319,22 @@ class VoiceOrchestrator:
 
         # Trigger background post-call QA Auditor
         full_transcript = "\n".join(session.metadata.get("conversation_turns", []))
-        auditor = get_call_auditor()
         try:
             loop = asyncio.get_running_loop()
-            loop.create_task(
-                auditor.audit_call(
-                    call_id=session.call_id,
-                    customer_id=session.user_id,
-                    customer_name=session.metadata.get("customer_name") or "Customer",
-                    phone=session.customer_phone,
-                    order_id=session.order_id or "WF-10928",
-                    transcript=full_transcript,
-                    call_duration=int(duration or 0),
-                    status=session.status.value
+            if session.status != CallState.FAILED and full_transcript.strip():
+                auditor = get_call_auditor()
+                loop.create_task(
+                    auditor.audit_call(
+                        call_id=session.call_id,
+                        customer_id=session.user_id,
+                        customer_name=session.metadata.get("customer_name") or "Customer",
+                        phone=session.customer_phone,
+                        order_id=session.order_id or "WF-10928",
+                        transcript=full_transcript,
+                        call_duration=int(duration or 0),
+                        status=session.status.value
+                    )
                 )
-            )
 
             # Broadcast call completion event to live admin dashboard
             broadcaster = get_live_broadcaster()

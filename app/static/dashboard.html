@@ -3147,6 +3147,12 @@
                                 log(`Priya (AI): "${cleaned}"`, 'ai');
                                 conversationTranscript.push(`Priya: ${cleaned}`);
                             }
+                        } else if (data.event === 'error' || data.type === 'gemini_error') {
+                            const errDesc = data.message || data.error || 'Gemini AI connection failed';
+                            log(`❌ [AI ERROR] ${errDesc}`, 'error');
+                            if (typeof showToast === 'function') {
+                                showToast(errDesc, 'error', 12000);
+                            }
                         } else if (data.text) {
                             const cleaned = data.text.trim();
                             log(`Priya (AI): "${cleaned}"`, 'ai');
@@ -3157,6 +3163,15 @@
             };
 
             aiWebSocket.onerror = (err) => log('AI WebSocket error', 'error');
+            aiWebSocket.onclose = (event) => {
+                if (event.code === 1011 || event.code === 1008 || (event.reason && event.reason.includes('prepayment'))) {
+                    const closeMsg = `⚠️ Gemini Session closed (${event.code}): ${event.reason || 'Credits depleted or server error'}. Check Google AI Studio billing.`;
+                    log(closeMsg, 'error');
+                    if (typeof showToast === 'function') {
+                        showToast(closeMsg, 'error', 12000);
+                    }
+                }
+            };
         }
 
         // Call Timer (starts only when answered)
@@ -3347,6 +3362,12 @@
                             log(`⚙️ Tool Executed: ${msg.tool}`, 'info');
                         } else if (msg.type === 'call_connected') {
                             log(`📞 Call Connected: ${msg.customer_name} (+91 ${msg.phone})`, 'info');
+                        } else if (msg.type === 'gemini_error') {
+                            const alertMsg = msg.display_error || msg.error || 'Gemini API Error occurred.';
+                            log(`❌ ${alertMsg}`, 'error');
+                            if (typeof showToast === 'function') {
+                                showToast(alertMsg, 'error', 12000);
+                            }
                         } else if (msg.type === 'qa_audit_completed') {
                             log(`⭐ AI QA Audit: ${msg.human_score}/10 (${msg.customer_sentiment}, RTO: ${msg.rto_risk}) for ${msg.customer_name}`, 'success');
                             if (msg.transcript && msg.transcript.length > 15) {

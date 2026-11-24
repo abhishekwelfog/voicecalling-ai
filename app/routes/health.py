@@ -78,12 +78,33 @@ async def integrations_diagnostic() -> Dict[str, Any]:
     finally:
         await qdrant.close()
 
-    # 4. Gemini Configuration
+    # 4. Gemini Configuration & Quick Connectivity Check
     gemini = GeminiService()
+    gemini_status = "configured" if gemini.is_configured() else "unconfigured"
+    gemini_msg = ""
+    if gemini.is_configured():
+        try:
+            client = gemini.get_client()
+            # Fast ping: list models (validates API key instantly without tenacity retry lag)
+            next(client.models.list(config={"page_size": 1}))
+            gemini_status = "connected"
+        except Exception as ge:
+            err_str = str(ge)
+            if "prepayment credits are depleted" in err_str or "RESOURCE_EXHAUSTED" in err_str or "402" in err_str:
+                gemini_status = "credits_depleted"
+                gemini_msg = "Google AI Studio prepayment credits are depleted. Recharge at https://ai.studio/projects"
+            elif "401" in err_str or "API_KEY_INVALID" in err_str:
+                gemini_status = "invalid_key"
+                gemini_msg = "Invalid Gemini API key. Check GEMINI_API_KEY in .env"
+            else:
+                gemini_status = "error"
+                gemini_msg = err_str[:120]
+
     results["integrations"]["gemini"] = {
-        "status": "configured" if gemini.is_configured() else "unconfigured",
+        "status": gemini_status,
         "live_model": settings.gemini_live_model,
-        "voice": settings.gemini_voice_name
+        "voice": settings.gemini_voice_name,
+        **({"message": gemini_msg} if gemini_msg else {})
     }
 
     return results
