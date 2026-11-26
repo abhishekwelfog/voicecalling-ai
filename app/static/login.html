@@ -259,6 +259,12 @@
           </div>
         </div>
 
+        <!-- Anti-Bot Honeypot Trap (invisible to humans, filled by spam bots) -->
+        <div style="display:none !important; visibility:hidden; position:absolute; left:-9999px;" aria-hidden="true">
+          <label for="trap">Security Verification</label>
+          <input type="text" id="trap" name="trap" tabindex="-1" autocomplete="off" />
+        </div>
+
         <button type="submit" id="btnSubmit" class="btn-submit">
           <span>Sign In to Dashboard</span>
           <span>→</span>
@@ -281,6 +287,7 @@
 
       const username = usernameInput.value.trim();
       const password = passwordInput.value;
+      const trap = document.getElementById('trap') ? document.getElementById('trap').value : '';
 
       errorAlert.style.display = 'none';
       btnSubmit.disabled = true;
@@ -290,7 +297,7 @@
         const res = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
+          body: JSON.stringify({ username, password, trap })
         });
 
         const data = await res.json();

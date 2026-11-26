@@ -200,6 +200,7 @@ async def test_security_headers_middleware():
         assert headers.get("Referrer-Policy") == "strict-origin-when-cross-origin"
         assert headers.get("Permissions-Policy") == "geolocation=(), camera=(), microphone=(self)"
         assert headers.get("Server") == "Welfog-Security-Shield"
+        assert "default-src 'self'" in headers.get("Content-Security-Policy", "")
 
 
 @pytest.mark.asyncio
@@ -297,5 +298,20 @@ async def test_static_html_auth_guard_redirection():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test", cookies=cookies, follow_redirects=False) as client:
         res_dash = await client.get("/dashboard")
         assert res_dash.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_honeypot_bot_trap_detection():
+    """Verify honeypot trap field immediately catches and rejects automated spam bots."""
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        # Automated bot filling the hidden trap input
+        res = await client.post("/api/auth/login", json={
+            "username": "admin",
+            "password": "WrongPassword123!",
+            "trap": "http://spam-link.ru"
+        })
+        assert res.status_code == 400
+        assert "Automated bot" in res.json().get("detail", "")
+
 
 

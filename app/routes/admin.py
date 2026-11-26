@@ -31,6 +31,7 @@ from app.services.security_service import get_brute_force_manager
 class LoginRequest(BaseModel):
     username: str
     password: str
+    trap: Optional[str] = None  # Honeypot field: real users leave empty, automated bots fill it
 
 
 class ChangePasswordRequest(BaseModel):
@@ -126,6 +127,14 @@ async def login(req: LoginRequest, request: Request, response: Response):
     """
     clean_ip = request.headers.get("X-Forwarded-For", "").split(",")[0].strip() or (request.client.host if request.client else "127.0.0.1")
     clean_user = req.username.strip()
+
+    # Honeypot defense against automated credential stuffing / spam bots
+    if req.trap and req.trap.strip():
+        await asyncio.sleep(0.3)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Automated bot submission detected."
+        )
 
     bf_manager = get_brute_force_manager()
     lockout_sec = bf_manager.check_lockout(clean_ip, clean_user)

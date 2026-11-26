@@ -99,6 +99,22 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         headers["X-XSS-Protection"] = "1; mode=block"
         headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=(self)"
+        headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src 'self' https://fonts.gstatic.com data:; "
+            "connect-src 'self' wss: ws: https:; "
+            "media-src 'self' blob:; "
+            "img-src 'self' data: https:; "
+            "frame-ancestors 'self';"
+        )
+        is_https = request.url.scheme == "https" or request.headers.get("X-Forwarded-Proto") == "https"
+        if is_https:
+            headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        if request.url.path.startswith("/api/") or request.url.path in {"/dashboard", "/dialer", "/history"}:
+            headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+            headers["Pragma"] = "no-cache"
         # Mask server implementation fingerprinting
         headers["Server"] = "Welfog-Security-Shield"
         return response
