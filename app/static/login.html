@@ -246,16 +246,16 @@
 
       <form id="loginForm" onsubmit="handleLogin(event)">
         <div class="form-group">
-          <label for="username">Admin Username</label>
+          <label for="username">Username</label>
           <div class="input-wrapper">
-            <input type="text" id="username" value="admin" required placeholder="Enter admin username" autofocus />
+            <input type="text" id="username" required placeholder="Enter username" autocomplete="username" autofocus />
           </div>
         </div>
 
         <div class="form-group">
           <label for="password">Password</label>
           <div class="input-wrapper">
-            <input type="password" id="password" required placeholder="Enter admin password" autocomplete="current-password" />
+            <input type="password" id="password" required placeholder="Enter password" autocomplete="current-password" />
           </div>
         </div>
 

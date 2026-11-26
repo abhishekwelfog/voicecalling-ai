@@ -760,7 +760,7 @@ async def get_webrtc_config(_: str = Depends(get_current_admin)):
     from app.config import get_settings
     settings = get_settings()
     return {
-        "user_id": settings.telecmi_user_id or "5002_33338876",
+        "user_id": settings.telecmi_user_id or "",
         "password": settings.telecmi_user_password or "",
         "sbc": settings.telecmi_sbc or "sbcind.telecmi.com",
         "caller_id": settings.telecmi_caller_id or ""

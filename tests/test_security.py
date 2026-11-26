@@ -269,3 +269,33 @@ def test_voicemail_detection():
     assert is_voicemail_or_machine("Hello, main Abhishek baat kar raha hoon.") is False
     assert is_voicemail_or_machine("Order ka kitna amount hai?") is False
 
+
+@pytest.mark.asyncio
+async def test_login_page_no_prefilled_username():
+    """Verify login page does NOT have pre-filled username or credentials in HTML."""
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        res = await client.get("/login")
+        assert res.status_code == 200
+        html = res.text
+        assert 'value="admin"' not in html
+        assert 'value="administrator"' not in html
+
+
+@pytest.mark.asyncio
+async def test_static_html_auth_guard_redirection():
+    """Verify that unauthenticated direct URL access to HTML views strictly redirects to /login."""
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test", follow_redirects=False) as client:
+        # 1. Unauthenticated requests must redirect to /login
+        for route in ["/dashboard", "/dialer", "/history", "/static/dashboard.html", "/static/index.html", "/static/history.html"]:
+            res = await client.get(route)
+            assert res.status_code == 303, f"Expected 303 redirect for {route}, got {res.status_code}"
+            assert res.headers.get("location") == "/login"
+
+    # 2. Authenticated requests with valid session cookie succeed
+    token = create_session_token("admin")
+    cookies = {SESSION_COOKIE_NAME: token}
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test", cookies=cookies, follow_redirects=False) as client:
+        res_dash = await client.get("/dashboard")
+        assert res_dash.status_code == 200
+
+

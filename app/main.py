@@ -83,6 +83,23 @@ def create_app() -> FastAPI:
 
     static_dir = os.path.join(os.path.dirname(__file__), "static")
     if os.path.exists(static_dir):
+        @app.middleware("http")
+        async def protect_static_html_middleware(request: Request, call_next):
+            path = request.url.path
+            # Block direct URL tampering to protected static HTML views
+            if path.startswith("/static/") and path.endswith(".html") and not path.endswith("login.html"):
+                token = request.cookies.get(SESSION_COOKIE_NAME)
+                if not token or not verify_session_token(token):
+                    return RedirectResponse(url="/login", status_code=303)
+                if path.endswith("dashboard.html"):
+                    return RedirectResponse(url="/dashboard", status_code=303)
+                elif path.endswith("index.html"):
+                    return RedirectResponse(url="/dialer", status_code=303)
+                elif path.endswith("history.html"):
+                    return RedirectResponse(url="/history", status_code=303)
+
+            return await call_next(request)
+
         app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
         @app.get("/", include_in_schema=False)

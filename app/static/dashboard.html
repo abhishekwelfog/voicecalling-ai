@@ -11,6 +11,19 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap"
         rel="stylesheet">
     <script>
+        // Immediate Security Guard: Verify active authenticated session before DOM paint
+        (async function authGuard() {
+            try {
+                const res = await fetch('/api/auth/me', { cache: 'no-store' });
+                if (!res.ok) {
+                    window.location.replace('/login');
+                }
+            } catch (e) {
+                window.location.replace('/login');
+            }
+        })();
+    </script>
+    <script>
         // Global RTCPeerConnection Interceptor to guarantee WebRTC access across all SDKs
         const OriginalRTCPeerConnection = window.RTCPeerConnection;
         window._telecmiPeerConnections = new Set();
